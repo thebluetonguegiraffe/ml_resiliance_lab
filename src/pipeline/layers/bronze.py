@@ -9,7 +9,7 @@ from config import MONGO_DB_NAME, TRANSACTIONS_BRONZE, TRANSACTIONS_REJECTED, SC
 logger = logging.getLogger("bronze_layer")
 
 
-class TransactionContract(BaseModel):
+class BronzeContract(BaseModel):
     time: float = Field(..., gt=0, description="Transaction time, strictly > 0")
     amount: float = Field(
         ..., ge=0.0, le=25000.0, description="Transaction amount, between 0.0 and 25000.0"
@@ -27,24 +27,25 @@ class TransactionContract(BaseModel):
 class BronzeLayer:
     def __init__(self, mongo_client: MongoClient, pipeline_run_id: str):
         self.mongo_client = mongo_client
+        
         self.bronze_col = mongo_client[MONGO_DB_NAME][TRANSACTIONS_BRONZE]
         self.rejected_col = mongo_client[MONGO_DB_NAME][TRANSACTIONS_REJECTED]
 
         self.pipeline_run_id = pipeline_run_id
 
-    def process(self, data):
+    def process(self, raw_data: dict):
         try:
-            validated_data = TransactionContract(**data)
-            bronze_doc = validated_data.model_dump(by_alias=True)
+            bronze_data = BronzeContract(**raw_data)
+            bronze_doc = bronze_data.model_dump()
+            
             bronze_doc.update({
                 "ingested_at": datetime.now(timezone.utc).isoformat(),
                 "schema_version": SCHEMA_VERSION,
                 "pipeline_run_id": self.pipeline_run_id,
-                "processed": False
+                "processed": False  # pending for silver layer
             })
-            db = self.mongo_client[MONGO_DB_NAME]
-            db[TRANSACTIONS_BRONZE].insert_one(bronze_doc)
+            self.bronze_col.insert_one(bronze_doc)
+        
         except Exception as e:
-            logger.info("Transaction rejected due to validation error")
-            db = self.mongo_client[MONGO_DB_NAME]
-            db[TRANSACTIONS_REJECTED].insert_one(data)
+            logger.info(f"Transaction rejected due to validation error: {e}")
+            self.rejected_col.insert_one(raw_data)
