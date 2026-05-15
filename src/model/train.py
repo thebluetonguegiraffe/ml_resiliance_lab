@@ -4,7 +4,7 @@ from enum import StrEnum
 import os
 import pandas as pd
 
-from config import DATASET_PATH, TRAINING_SAMPLES
+from config import DATASET_PATH, TRAIN_DATASET_PATH, TRAINING_SAMPLES
 
 MLFLOW_DB = "sqlite:///src/model/mlflow.db"
 MLFLOW_ARTIFACTS = os.path.abspath("src/model/mlruns")
@@ -59,7 +59,7 @@ def train(
 ):
     if run_name is None:
         run_name = f"{model_config}_{dataset_config.value}_baseline"
-    
+
     logger.info(f"Training {model_config} on {dataset_config.value} dataset...")
 
     params = MODELS_MAPPER[model_config]["params"]
@@ -69,7 +69,7 @@ def train(
         normal = pd.read_csv(DATASET_PATH).query("Class == 0").head(950)
         df = pd.concat([frauds, normal]).sample(frac=1)
     elif dataset_config == DatasetConfig.FULL:
-        df = pd.read_csv(DATASET_PATH, nrows=TRAINING_SAMPLES)
+        df = pd.read_csv(TRAIN_DATASET_PATH)
 
     X = df.drop("Class", axis=1)
     y = df["Class"]
@@ -142,6 +142,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
+        required=True,
         choices=MODELS_MAPPER.keys(),
         help="Model to train: 'rf' for Random Forest or 'xgb' for XGBoost",
     )
@@ -161,4 +162,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    train(model_config=args.model, dataset_config=DatasetConfig(args.dataset), run_name=args.run_name)
+    train(
+        model_config=args.model, dataset_config=DatasetConfig(args.dataset), run_name=args.run_name
+    )
