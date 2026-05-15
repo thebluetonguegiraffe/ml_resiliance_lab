@@ -7,10 +7,9 @@ from dotenv import load_dotenv
 from pymongo import MongoClient
 
 from config import (
-    DATASET_PATH, 
-    MONGO_COLLECTION_NAME_RAW, 
-    MONGO_DB_NAME, 
-    TRAINING_SAMPLES, 
+    TRANSACTIONS_RAW, 
+    MONGO_DB_NAME,
+    LAB_DATASET_PATH, 
     CORRUPTED_SAMPLES
 )
 
@@ -39,12 +38,8 @@ def generate_corrupted_data(num_samples):
         
     return records
 
-def get_valid_data(size_mode):
-    """Reads the CSV and processes real data based on the selected size."""
-    if size_mode == 'tiny':
-        df = pd.read_csv(DATASET_PATH, skiprows=range(1, TRAINING_SAMPLES + 1), nrows=9)
-    else:
-        df = pd.read_csv(DATASET_PATH, skiprows=range(1, TRAINING_SAMPLES + 1))
+def get_valid_data():
+    df = pd.read_csv(LAB_DATASET_PATH)
 
     df.columns = [c.lower() for c in df.columns]
     v_cols = [c for c in df.columns if c.startswith('v')]
@@ -59,33 +54,15 @@ if __name__ == "__main__":
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
-    
-    parser = argparse.ArgumentParser(description="Data Ingestion & Corrupted Generator for Fraud Detection Pipeline")
-    parser.add_argument(
-        '--size', 
-        type=str, 
-        choices=['full', 'tiny'], 
-        default='full',
-        help="Ingestion size: 'full' (uses constants) or 'tiny' (9 real, 1 corrupted)."
-    )
-    args = parser.parse_args()
 
     mongo_uri = os.getenv("MONGO_URI")
     db_name = MONGO_DB_NAME
-    collection_name = MONGO_COLLECTION_NAME_RAW
+    collection_name = TRANSACTIONS_RAW
     
-    if args.size == 'tiny':
-        num_corrupted = 1
-        logger.info("TINY mode activated: Loading 9 real samples and 1 corrupted sample.")
-    else:
-        num_corrupted = CORRUPTED_SAMPLES
-        logger.info(f"FULL mode activated: Loading remaining valid samples and {num_corrupted} corrupted samples.")
-
-    logger.info("Processing real data from CSV...")
-    valid_records = get_valid_data(args.size)
+    valid_records = get_valid_data()
     
     logger.info("Generating corrupted samples...")
-    corrupted_records = generate_corrupted_data(num_corrupted)
+    corrupted_records = generate_corrupted_data(CORRUPTED_SAMPLES)
     
     all_records = valid_records + corrupted_records
     random.shuffle(all_records)
