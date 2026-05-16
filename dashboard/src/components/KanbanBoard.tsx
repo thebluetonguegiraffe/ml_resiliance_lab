@@ -2,6 +2,7 @@ import KanbanColumn from "./KanbanColumn";
 
 interface KanbanBoardProps {
   data: {
+    input: any[];
     bronze: any[];
     silver: any[];
     gold: any[];
@@ -17,6 +18,16 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
       <div className="flex h-full gap-4 px-2 min-w-max pb-2">
         
         {/* Main Flow */}
+        <div className="h-full flex-1 flex flex-col min-w-[200px] max-w-[350px]">
+          <KanbanColumn 
+            title="Input Queue" 
+            count={data.input.length} 
+            transactions={data.input} 
+            layer="input" 
+            colorVar="#d8b4fe" 
+          />
+        </div>
+
         <div className="flex flex-col gap-4 h-full flex-1 min-w-[200px] max-w-[350px]">
           <div className="flex-1 flex flex-col">
             <KanbanColumn 

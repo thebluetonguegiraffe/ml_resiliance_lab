@@ -4,6 +4,7 @@ import clientPromise from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
 const DB_NAME = "fraud_detection";
+const FAULT_BURST_SIZE = 5;
 
 export async function getDashboardMetrics() {
   const client = await clientPromise;
@@ -108,28 +109,38 @@ export async function getHourlyDistribution() {
 export async function injectInvalidTx() {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
-  await db.collection("injected_events_queue").insertOne({
-      is_control_message: false,
-      transaction_id: "INJ-" + Date.now(),
-      user_id: "malicious_user",
-      amount: "invalid_amount_type", // triggers reject
-      timestamp: new Date().toISOString()
-  });
+  
+  // Sample 1 record from raw collection like fault_injector.py
+  const rawRecords = await db.collection("transactions_raw").aggregate([{ $sample: { size: 1 } }]).toArray();
+  if (rawRecords.length > 0) {
+    const record = rawRecords[0];
+    delete record._id; 
+    record.transaction_id = `INJ-INVALID-Tx`;
+    record.amount = -999.0;
+    
+    await db.collection("injected_events_queue").insertOne(record);
+  }
   revalidatePath("/");
 }
 
 export async function injectNightlyBurst() {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
-  // Inject event that triggers drift
-  await db.collection("injected_events_queue").insertOne({
-      is_control_message: false,
-      transaction_id: "INJ-DRIFT-" + Date.now(),
-      user_id: "drift_tester",
-      amount: 99999,
-      country: "Unknown",
-      timestamp: new Date().toISOString()
+  
+  // Sample FAULT_BURST_SIZE records and set time to 4 AM (14400s)
+  const rawRecords = await db.collection("transactions_raw").aggregate([{ $sample: { size: FAULT_BURST_SIZE } }]).toArray();
+  const driftRecords = rawRecords.map((record, i) => {
+    delete record._id;
+    return { 
+      ...record, 
+      transaction_id: `INJ-Night-bursts-${i + 1}`,
+      time: 14400.0
+    };
   });
+
+  if (driftRecords.length > 0) {
+    await db.collection("injected_events_queue").insertMany(driftRecords);
+  }
   revalidatePath("/");
 }
 
@@ -158,15 +169,21 @@ export async function toggleApiRecovery() {
 export async function injectVelocityBurst() {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
-  // Create 5 identical rapid transactions
-  const docs = Array.from({ length: 5 }).map((_, i) => ({
-      is_control_message: false,
-      transaction_id: `INJ-VEL-${Date.now()}-${i}`,
-      user_id: "velocity_spammer",
-      amount: 500,
-      timestamp: new Date().toISOString()
-  }));
-  await db.collection("injected_events_queue").insertMany(docs);
+  
+  // Sample FAULT_BURST_SIZE records and set fixed time
+  const rawRecords = await db.collection("transactions_raw").aggregate([{ $sample: { size: FAULT_BURST_SIZE } }]).toArray();
+  const velocityRecords = rawRecords.map((record, i) => {
+    delete record._id;
+    return { 
+      ...record, 
+      transaction_id: `INJ-VELOCITY-bursts-${i + 1}`,
+      time: 20000.0
+    };
+  });
+
+  if (velocityRecords.length > 0) {
+    await db.collection("injected_events_queue").insertMany(velocityRecords);
+  }
   revalidatePath("/");
 }
 

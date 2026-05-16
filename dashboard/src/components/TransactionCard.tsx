@@ -3,7 +3,7 @@ import { AlertCircle, CheckCircle2, FileWarning, Fingerprint, ShieldAlert, Zap }
 
 interface TransactionCardProps {
   tx: any;
-  layer: "bronze" | "silver" | "gold" | "inference" | "final" | "rejected";
+  layer: "input" | "bronze" | "silver" | "gold" | "inference" | "final" | "rejected";
 }
 
 export default function TransactionCard({ tx, layer }: TransactionCardProps) {
@@ -14,13 +14,26 @@ export default function TransactionCard({ tx, layer }: TransactionCardProps) {
   }, []);
 
   const id = tx.transaction_id || tx._id?.toString() || "Unknown";
-  const amount = tx.amount ? `$${tx.amount}` : "";
-  const time = (mounted && tx.timestamp) ? new Date(tx.timestamp).toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit', 
-    second:'2-digit',
-    hour12: false 
-  }) : "";
+  const amount = tx.amount ? `${tx.amount}€` : "";
+  let time = "";
+  if (mounted) {
+    const rawTime = tx.time !== undefined ? tx.time : tx.Time;
+    if (rawTime !== undefined && rawTime !== null) {
+      const timeVal = typeof rawTime === 'string' ? parseFloat(rawTime) : rawTime;
+      if (!isNaN(timeVal)) {
+        const hours = Math.floor(timeVal / 3600) % 24;
+        const minutes = Math.floor((timeVal % 3600) / 60);
+        time = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      }
+    } else if (tx.timestamp) {
+      time = new Date(tx.timestamp).toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second:'2-digit',
+        hour12: false 
+      });
+    }
+  }
 
   // Dynamic styling based on layer and status
   let borderColor = "border-gray-800";
@@ -45,22 +58,29 @@ export default function TransactionCard({ tx, layer }: TransactionCardProps) {
   } else if (layer === "inference") {
     Icon = FileWarning;
     iconColor = "text-[var(--primary)]";
+  } else if (layer === "input") {
+    Icon = Zap;
+    iconColor = "text-[#d8b4fe]";
   }
 
   return (
-    <div className={`bg-[#171821] p-2 rounded-lg border ${borderColor} shadow-sm hover:shadow-md transition-all`}>
-      <div className="flex justify-between items-start mb-1">
+    <div className={`bg-[#1c1e2a] p-2.5 rounded-lg border ${borderColor} shadow-md hover:shadow-lg transition-all duration-200`}>
+      <div className="flex justify-between items-start mb-1.5">
         <div className="flex items-center gap-1.5 overflow-hidden">
           <Icon size={12} className={`flex-shrink-0 ${iconColor}`} />
           <span className="text-[10px] font-mono text-gray-300 truncate" title={id}>{id}</span>
         </div>
-        <span className="text-[9px] text-gray-500 flex-shrink-0">{time}</span>
+        <span className={`text-[9px] font-bold flex-shrink-0 ${id.includes('burst') || id.includes('VELOCITY') ? 'text-yellow-400' : 'text-gray-400'}`}>
+          {time}
+        </span>
       </div>
       
       <div className="flex justify-between items-end mt-1">
-        <div className="text-xs font-semibold text-white">{amount}</div>
         <div className="text-[9px] text-gray-400 max-w-[80px] truncate" title={tx.user_id}>
           {tx.user_id}
+        </div>
+        <div className={`text-xs font-bold ${id.includes('INVALID') ? 'text-red-500' : 'text-white'}`}>
+          {amount}
         </div>
       </div>
 
