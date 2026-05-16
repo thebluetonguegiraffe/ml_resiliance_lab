@@ -1,0 +1,12 @@
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+ENV MLFLOW_TRACKING_URI="sqlite:////app/src/model/mlflow.db"
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir mlflow scikit-learn pandas
+
+EXPOSE 5001

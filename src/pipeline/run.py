@@ -1,24 +1,20 @@
 import os
 import uuid
-import time
-import random
 import logging
 import argparse
-from enum import Enum
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
 from config import (
     FINAL_RESULTS,
     INFERENCE_RESULTS,
-    MODEL_VERSION,
     MONGO_DB_NAME,
-    TRANSACTIONS_RAW,
     TRANSACTIONS_BRONZE,
     TRANSACTIONS_GOLD,
     TRANSACTIONS_REJECTED,
     TRANSACTIONS_SILVER,
     INJECTED_EVENTS_QUEUE,
+    TRANSACTIONS_INPUT,
 )
 from src.pipeline.layers.producer import Producer, ProducerMode
 from src.pipeline.layers.bronze import BronzeLayer
@@ -63,13 +59,12 @@ class Pipeline:
         self.predictor = InferenceLayer(
             mongo_client=self.mongo_client,
             pipeline_run_id=self.pipeline_run_id,
-            model_version=MODEL_VERSION,
         )
 
         self.decision_engine = TransactionDecisionEngine(
             mongo_client=self.mongo_client,
             pipeline_run_id=self.pipeline_run_id,
-        ) 
+        )
 
     def _clear_collections(self):
         logger.info("Clearing existing data from all Medallion collections...")
@@ -81,6 +76,7 @@ class Pipeline:
             TRANSACTIONS_GOLD,
             TRANSACTIONS_REJECTED,
             INJECTED_EVENTS_QUEUE,
+            TRANSACTIONS_INPUT,
             INFERENCE_RESULTS,
             FINAL_RESULTS,
         ]
@@ -99,6 +95,8 @@ class Pipeline:
         queue_coll = self.mongo_client[self.db_name]["injected_events_queue"]
 
         self.api_is_down = False
+        self.kill_switch_active = False
+        self.drift_pct = 0.0
 
         for _ in range(max_samples):
             record_to_process = None
@@ -112,6 +110,14 @@ class Pipeline:
                         logger.warning(
                             f"SYSTEM ALERT: Silver API 'is_down' set to {self.api_is_down}"
                         )
+
+                    if injected_record.get("target") == "kill_switch":
+                        self.kill_switch_active = injected_record.get("is_active")
+                        logger.error(
+                            "SYSTEM ALERT: Kill switch is active, "
+                            "stopping the pipeline run immediately!"
+                        )
+                        break
 
                     try:
                         record_to_process = next(raw_data_stream)
@@ -127,9 +133,18 @@ class Pipeline:
                 except StopIteration:
                     break
 
+            if record_to_process:
+                input_doc = record_to_process.copy()
+                input_doc["_id"] = str(uuid.uuid4())
+                self.mongo_client[self.db_name][TRANSACTIONS_INPUT].insert_one(
+                    input_doc
+                )
+
             self.bronze_layer.process(record_to_process)
 
-            self.silver_layer.process(circuit_breaker_open=self.api_is_down)
+            self.drift_pct = self.silver_layer.process(
+                circuit_breaker_open=self.api_is_down
+            )
 
             self.gold_layer.process()
 
@@ -146,7 +161,9 @@ if __name__ == "__main__":
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
-    parser = argparse.ArgumentParser(description="Pipeline runner for processing transactions")
+    parser = argparse.ArgumentParser(
+        description="Pipeline runner for processing transactions"
+    )
     parser.add_argument(
         "--mode",
         choices=[item.value for item in ProducerMode],

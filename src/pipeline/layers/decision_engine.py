@@ -42,7 +42,7 @@ class TransactionDecisionEngine:
         doc_id = doc["_id"]
 
         credit_score = doc.get("credit_score")
-        tx_count_last_1h = doc.get("tx_count_last_1h")
+        tx_count_last_1s = doc.get("tx_count_last_1s")
         if probability >= self.deny_threshold:
             new_status = TransactionStatus.DENIED
             reason = f"Probability ({probability:.2%}) exceeds the denial threshold."
@@ -51,9 +51,9 @@ class TransactionDecisionEngine:
             new_status = TransactionStatus.TO_REVISE
             reason = "Credit Score is 0. Requires manual review of history."
 
-        elif tx_count_last_1h > 10:
+        elif tx_count_last_1s > 10:
             new_status = TransactionStatus.TO_REVISE
-            reason = f"High transaction velocity ({tx_count_last_1h} in the last hour). Possible account takeover."
+            reason = f"High transaction velocity ({tx_count_last_1s} in the last s). Possible account takeover."  # noqa
 
         elif probability >= self.safe_threshold:
             new_status = TransactionStatus.TO_REVISE
@@ -65,9 +65,7 @@ class TransactionDecisionEngine:
                 f"Probability ({probability:.2%}) is safe and transactional behavior is normal."
             )
 
-        self.final_col.insert_one(
-            {"_id": doc_id, "status": new_status, "decision_reason": reason}
-        )
+        self.final_col.insert_one({"_id": doc_id, "status": new_status, "decision_reason": reason})
 
     def close_connection(self):
         self.mongo_client.close()

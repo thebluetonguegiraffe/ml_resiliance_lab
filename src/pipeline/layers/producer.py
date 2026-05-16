@@ -4,7 +4,7 @@ import time
 from pymongo import MongoClient
 from enum import Enum
 
-from config import MONGO_DB_NAME, TRANSACTIONS_RAW, TRANSACTIONS_RAW
+from config import MONGO_DB_NAME, TRANSACTIONS_RAW
 
 logger = logging.getLogger("producer")
 
@@ -51,15 +51,17 @@ class Producer:
             for doc in cursor:
                 docs_found = True
                 last_id = doc["_id"]
-                
+
                 # Yield the document to whoever is calling next()
                 yield doc
-                
+
                 # Apply the delay based on the mode
                 wait_time = delay_func()
                 if wait_time > 0:
                     time.sleep(wait_time)
 
             if not docs_found:
-                logger.info("Reached the end of the source collection. Wrapping around to the start...")
+                logger.info(
+                    "Reached the end of the source collection. Wrapping around to the start..."
+                )
                 last_id = None
