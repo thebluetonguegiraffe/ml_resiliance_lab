@@ -1,24 +1,23 @@
 import os
+import requests
 
-import pandas as pd
-import mlflow.sklearn
 from pymongo import MongoClient
 
-from config import INFERENCE_RESULTS, MLFLOW_DB, MODEL_VERSION, MONGO_DB_NAME, TRANSACTIONS_GOLD
+from config import INFERENCE_RESULTS, MONGO_DB_NAME, TRANSACTIONS_GOLD
+
+MLFLOW_API_URL = "http://127.0.0.1:5001/invocations"
 
 
 class InferenceLayer:
-    def __init__(self, mongo_client: MongoClient, model_version: str, pipeline_run_id: str):
+    def __init__(
+        self,
+        mongo_client: MongoClient,
+        pipeline_run_id: str,
+    ):
         self.gold_col = mongo_client[MONGO_DB_NAME][TRANSACTIONS_GOLD]
         self.inference_col = mongo_client[MONGO_DB_NAME][INFERENCE_RESULTS]
 
         self.pipeline_run_id = pipeline_run_id
-
-        mlflow.set_tracking_uri(MLFLOW_DB)
-        model_name = "fraud-detector"
-        model_uri = f"models:/{model_name}/{model_version}"
-
-        self.model = mlflow.sklearn.load_model(model_uri)
 
     def get_sample(self) -> dict:
         sample = self.gold_col.find_one()
@@ -42,26 +41,36 @@ class InferenceLayer:
 
         sample_id = sample.pop("_id")
 
-        df_sample = pd.DataFrame([sample])
+        payload = {"dataframe_records": [sample]}
 
-        prediction = self.model.predict(df_sample)
+        response = requests.post(
+            MLFLOW_API_URL,
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=10,
+        )
+        response.raise_for_status()
 
-        probability = self.model.predict_proba(df_sample)[0][1]
+        result = response.json()["predictions"][0]
+
+        prediction = result['pred_class']
+        probability = result['fraud_probability']
 
         return {
             "_id": sample_id,
-            "pred_class": int(prediction[0]),
+            "pred_class": int(prediction),
             "fraud_probability": float(probability),
         }
 
     def save_inference(self, prediction_result: dict, original_sample: dict):
-        document = {
-            **prediction_result,
-            "processed": False,
-            **original_sample
-        }
+        document = {**prediction_result, "processed": False, **original_sample}
 
         self.inference_col.insert_one(document)
+
+        self.gold_col.update_one(
+            {"_id": original_sample["_id"]},
+            {"$set": {"processed": True}}
+        )
 
     def process(self) -> dict:
         sample_data, original_sample = self.get_sample()
@@ -80,7 +89,7 @@ if __name__ == "__main__":
 
     predictor = InferenceLayer(
         mongo_client=mongo_client,
-        model_version=MODEL_VERSION,
+        pipeline_run_id='test_run_id',
     )
 
     try:
