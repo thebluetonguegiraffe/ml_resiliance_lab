@@ -4,19 +4,20 @@ from enum import StrEnum
 import os
 import pandas as pd
 
-from config import DATASET_PATH, TRAIN_DATASET_PATH, TRAINING_SAMPLES
+from config import DATASET_PATH, TRAIN_DATASET_PATH
+from src.model.model_wrapper import FraudModelWrapper
 
-MLFLOW_DB = "sqlite:///src/model/mlflow.db"
-MLFLOW_ARTIFACTS = os.path.abspath("src/model/mlruns")
 
 import mlflow
-import mlflow.sklearn
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, classification_report
 
 import xgboost as xgb
+
+MLFLOW_DB = "sqlite:///src/model/mlflow.db"
+MLFLOW_ARTIFACTS = os.path.abspath("src/model/mlruns")
 
 
 class DatasetConfig(StrEnum):
@@ -90,7 +91,7 @@ def train(
     except mlflow.exceptions.MlflowException:
         pass
 
-    mlflow.set_experiment(f"fraud-detection")
+    mlflow.set_experiment("fraud-detection")
 
     model = MODELS_MAPPER[model_config]["model"](**params)
 
@@ -113,9 +114,11 @@ def train(
         logger.info(f"\nROC-AUC: {auc:.4f}")
         logger.info(report_dict)
 
-        model_info = mlflow.sklearn.log_model(
-            model,
+        wrapped_model = FraudModelWrapper(model=model)
+
+        mlflow.pyfunc.log_model(
             artifact_path="model",
+            python_model=wrapped_model,
             registered_model_name="fraud-detector",
         )
 
@@ -123,7 +126,7 @@ def train(
         eval_data["label"] = y_test.values
 
         mlflow.evaluate(
-            model=model_info.model_uri,
+            model=lambda df: model.predict(df),
             data=eval_data,
             targets="label",
             model_type="classifier",
@@ -151,6 +154,7 @@ if __name__ == "__main__":
         "--dataset",
         type=str,
         choices=[item.value for item in DatasetConfig],
+        default=DatasetConfig.FULL.value,
         help="Dataset size: 'small' (1k samples) or 'full' (100k samples)",
     )
 
