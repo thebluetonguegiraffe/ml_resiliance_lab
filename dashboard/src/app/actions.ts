@@ -249,3 +249,36 @@ export async function startPipeline() {
 
   child.unref();
 }
+
+export async function getTransactionTimeDistributions() {
+  const client = await clientPromise;
+  const db = client.db(DB_NAME);
+  // Get a representative sample from silver layer
+  const transactions = await db.collection("transactions_silver").find().limit(2000).toArray();
+  
+  if (transactions.length < 50) {
+    // Fallback to pre-calculated distribution from CSV if DB is empty
+    try {
+      const staticData = await import("./time_distribution.json");
+      return staticData.default || staticData;
+    } catch (e) {
+      console.error("Failed to load static distribution", e);
+    }
+  }
+
+  const hours = new Array(24).fill(0);
+  transactions.forEach(tx => {
+    const timeVal = tx.time !== undefined ? tx.time : tx.Time;
+    if (timeVal !== undefined && timeVal !== null) {
+      const timeNum = typeof timeVal === 'string' ? parseFloat(timeVal) : timeVal;
+      if (!isNaN(timeNum)) {
+        const hour = Math.floor(timeNum / 3600) % 24;
+        hours[hour]++;
+      }
+    }
+  });
+  
+  return hours.map((count, hour) => ({ name: `${hour}:00`, value: count }));
+}
+
+
