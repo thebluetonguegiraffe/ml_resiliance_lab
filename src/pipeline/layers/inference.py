@@ -1,3 +1,4 @@
+import logging
 import os
 import requests
 
@@ -6,6 +7,8 @@ from pymongo import MongoClient
 from config import INFERENCE_RESULTS, MONGO_DB_NAME, TRANSACTIONS_GOLD
 
 MLFLOW_API_URL = "http://127.0.0.1:5001/invocations"
+
+logger = logging.getLogger("inference_layer")
 
 
 class InferenceLayer:
@@ -53,8 +56,8 @@ class InferenceLayer:
 
         result = response.json()["predictions"][0]
 
-        prediction = result['pred_class']
-        probability = result['fraud_probability']
+        prediction = result["pred_class"]
+        probability = result["fraud_probability"]
 
         return {
             "_id": sample_id,
@@ -67,10 +70,7 @@ class InferenceLayer:
 
         self.inference_col.insert_one(document)
 
-        self.gold_col.update_one(
-            {"_id": original_sample["_id"]},
-            {"$set": {"processed": True}}
-        )
+        self.gold_col.update_one({"_id": original_sample["_id"]}, {"$set": {"processed": True}})
 
     def process(self) -> dict:
         sample_data, original_sample = self.get_sample()
@@ -89,14 +89,14 @@ if __name__ == "__main__":
 
     predictor = InferenceLayer(
         mongo_client=mongo_client,
-        pipeline_run_id='test_run_id',
+        pipeline_run_id="test_run_id",
     )
 
     try:
         result = predictor.process()
-        print(f"Prediction result: {result}")
+        logger.info(f"Prediction result: {result}")
 
     except Exception as e:
-        print(f"Error during inference: {e}")
+        logger.error(f"Error during inference: {e}")
     finally:
         mongo_client.close()

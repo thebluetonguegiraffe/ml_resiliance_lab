@@ -13,3 +13,10 @@ wheels/
 
 src/model/mlruns
 src/model/mlflow.db
+
+mcp_config.json
+figma.json
+
+dashboard/.next
+dashboard/node_modules
+dashboard/next-env.d.ts
