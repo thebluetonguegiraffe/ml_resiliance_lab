@@ -4,7 +4,7 @@ interface KanbanColumnProps {
   title: string;
   count: number;
   transactions: any[];
-  layer: "bronze" | "silver" | "gold" | "inference" | "final" | "rejected";
+  layer: "input" | "bronze" | "silver" | "gold" | "inference" | "final" | "rejected";
   colorVar: string; // e.g. "var(--primary)"
 }
 

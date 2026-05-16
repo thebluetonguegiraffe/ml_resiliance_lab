@@ -21,7 +21,17 @@ export async function GET(request: Request) {
               .toArray();
           };
 
-          const [bronze, silver, gold, inference, final, rejected] = await Promise.all([
+          const [input_stream, injected_events, bronze, silver, gold, inference, final, rejected] = await Promise.all([
+            db.collection("transactions_input")
+              .find({ is_control_message: { $ne: true } })
+              .sort({ _id: -1 })
+              .limit(10)
+              .toArray(),
+            db.collection("injected_events_queue")
+              .find({ is_control_message: { $ne: true } })
+              .sort({ _id: -1 })
+              .limit(10)
+              .toArray(),
             fetchRecent("transactions_bronze"),
             fetchRecent("transactions_silver"),
             fetchRecent("transactions_gold"),
@@ -39,13 +49,13 @@ export async function GET(request: Request) {
 
           const rejectsCount = await db.collection("transactions_rejected").countDocuments();
           const humanReviewCount = await db.collection("transactions_gold").countDocuments({ needs_manual_review: true });
-          
+
           let driftSum = 0;
           let driftCount = 0;
           for (const doc of silver) {
             if (doc.ml_features && typeof doc.ml_features.drift_score === 'number') {
-                driftSum += doc.ml_features.drift_score;
-                driftCount++;
+              driftSum += doc.ml_features.drift_score;
+              driftCount++;
             }
           }
           const nightlyDriftLevel = driftCount > 0 ? Math.round((driftSum / driftCount) * 100) : 0;
@@ -57,6 +67,10 @@ export async function GET(request: Request) {
             .toArray();
 
           const payload = JSON.stringify({
+            input: [...injected_events, ...input_stream]
+              .filter(doc => doc.is_control_message === undefined)
+              .sort((a, b) => b._id.toString().localeCompare(a._id.toString())) // Safer sort for mixed ID types
+              .slice(0, 10),
             bronze,
             silver,
             gold,

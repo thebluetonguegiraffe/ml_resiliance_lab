@@ -10,6 +10,7 @@ import { ShieldAlert, GitBranch, Users, LayoutDashboard } from "lucide-react";
 
 export default function DashboardClient() {
   const [data, setData] = useState({
+    input: [],
     bronze: [],
     silver: [],
     gold: [],
