@@ -44,7 +44,7 @@ export default function Header({ metrics }: { metrics?: any }) {
       </div>
       
       {metrics && (
-        <div className="flex items-center gap-8">
+        <div id="tour-stats" className="flex items-center gap-8">
           {/* Rejects Metric */}
           <div className="relative">
             <div 

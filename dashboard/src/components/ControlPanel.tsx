@@ -28,7 +28,7 @@ export default function ControlPanel({ apiStatus }: { apiStatus: string }) {
   };
 
   return (
-    <div className="relative bg-[var(--background)] p-6 rounded-xl border border-gray-800 shadow-sm flex items-stretch gap-12">
+    <div id="tour-controls" className="relative bg-[var(--background)] p-6 rounded-xl border border-gray-800 shadow-sm flex items-stretch gap-12">
 
       {/* Pipeline Lifecycle Menu */}
       <div className="flex flex-col flex-shrink-0 justify-center">
