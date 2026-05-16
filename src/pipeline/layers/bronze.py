@@ -27,7 +27,7 @@ class BronzeContract(BaseModel):
 class BronzeLayer:
     def __init__(self, mongo_client: MongoClient, pipeline_run_id: str):
         self.mongo_client = mongo_client
-        
+
         self.bronze_col = mongo_client[MONGO_DB_NAME][TRANSACTIONS_BRONZE]
         self.rejected_col = mongo_client[MONGO_DB_NAME][TRANSACTIONS_REJECTED]
 
@@ -37,15 +37,17 @@ class BronzeLayer:
         try:
             bronze_data = BronzeContract(**raw_data)
             bronze_doc = bronze_data.model_dump()
-            
-            bronze_doc.update({
-                "ingested_at": datetime.now(timezone.utc).isoformat(),
-                "schema_version": SCHEMA_VERSION,
-                "pipeline_run_id": self.pipeline_run_id,
-                "processed": False  # pending for silver layer
-            })
+
+            bronze_doc.update(
+                {
+                    "ingested_at": datetime.now(timezone.utc).isoformat(),
+                    "schema_version": SCHEMA_VERSION,
+                    "pipeline_run_id": self.pipeline_run_id,
+                    "processed": False,  # pending for silver layer
+                }
+            )
             self.bronze_col.insert_one(bronze_doc)
-        
+
         except Exception as e:
             logger.info(f"Transaction rejected due to validation error: {e}")
             self.rejected_col.insert_one(raw_data)
