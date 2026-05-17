@@ -68,7 +68,9 @@ export default function TransactionCard({ tx, layer }: TransactionCardProps) {
       <div className="flex justify-between items-start mb-1.5">
         <div className="flex items-center gap-1.5 overflow-hidden">
           <Icon size={12} className={`flex-shrink-0 ${iconColor}`} />
-          <span className="text-[10px] font-mono text-gray-300 truncate" title={id}>{id}</span>
+          <span className="text-[10px] font-mono text-gray-300 truncate" title={id}>
+            {tx.seq_num ? `Tx #${tx.seq_num}` : id}
+          </span>
         </div>
         <span className={`text-[9px] font-bold flex-shrink-0 ${id.includes('burst') || id.includes('VELOCITY') ? 'text-yellow-400' : 'text-gray-400'}`}>
           {time}

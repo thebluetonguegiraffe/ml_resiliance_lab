@@ -191,6 +191,7 @@ export async function resetPipeline() {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
   await Promise.all([
+      db.collection("transactions_input").deleteMany({}),
       db.collection("transactions_bronze").deleteMany({}),
       db.collection("transactions_silver").deleteMany({}),
       db.collection("transactions_gold").deleteMany({}),
@@ -198,7 +199,12 @@ export async function resetPipeline() {
       db.collection("injected_events_queue").deleteMany({}),
       db.collection("inference_results").deleteMany({}),
       db.collection("final_results").deleteMany({}),
-      db.collection("pipeline_logs").deleteMany({})
+      db.collection("pipeline_logs").deleteMany({}),
+      db.collection("pipeline_status").updateOne(
+        { _id: "current" } as any,
+        { $set: { status: "idle", updatedAt: new Date() } },
+        { upsert: true }
+      )
   ]);
   revalidatePath("/");
 }
@@ -207,12 +213,35 @@ export async function startPipeline() {
   const { spawn } = await import('child_process');
   const path = await import('path');
   
+  const client = await clientPromise;
+  const db = client.db(DB_NAME);
+
+  // Clear all collections so the board & logs appear empty before the new run
+  await Promise.all([
+    db.collection("transactions_input").deleteMany({}),
+    db.collection("transactions_bronze").deleteMany({}),
+    db.collection("transactions_silver").deleteMany({}),
+    db.collection("transactions_gold").deleteMany({}),
+    db.collection("transactions_rejected").deleteMany({}),
+    db.collection("injected_events_queue").deleteMany({}),
+    db.collection("inference_results").deleteMany({}),
+    db.collection("final_results").deleteMany({}),
+    db.collection("pipeline_logs").deleteMany({}),
+  ]);
+
+  // Set status to running
+  await db.collection("pipeline_status").updateOne(
+    { _id: "current" } as any,
+    { $set: { status: "running", startedAt: new Date() } },
+    { upsert: true }
+  );
+
   // The python script is in ../src/pipeline/run.py relative to dashboard root
   const scriptPath = path.resolve(process.cwd(), '../src/pipeline/run.py');
   const venvPythonPath = path.resolve(process.cwd(), '../.venv/bin/python');
   const projectRoot = path.resolve(process.cwd(), '..');
   
-  const child = spawn(venvPythonPath, [scriptPath, '--samples', '1', '--mode', 'demo'], {
+  const child = spawn(venvPythonPath, [scriptPath, '--samples', '10', '--mode', 'demo'], {
     detached: true,
     cwd: projectRoot,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -221,9 +250,6 @@ export async function startPipeline() {
       PYTHONPATH: projectRoot 
     }
   });
-  
-  const client = await clientPromise;
-  const db = client.db(DB_NAME);
   
   child.stdout?.on('data', async (data) => {
     const lines = data.toString().split('\n').filter((l: string) => l.trim());
@@ -244,6 +270,35 @@ export async function startPipeline() {
         type: 'stderr',
         timestamp: new Date().toISOString()
       });
+    }
+  });
+
+  // Track termination/closing of process to set status back to idle
+  child.on('close', async (code) => {
+    try {
+      const internalClient = await clientPromise;
+      const internalDb = internalClient.db(DB_NAME);
+      await internalDb.collection("pipeline_status").updateOne(
+        { _id: "current" } as any,
+        { $set: { status: "idle", updatedAt: new Date(), exitCode: code } },
+        { upsert: true }
+      );
+    } catch (err) {
+      console.error("Error setting status to idle in close handler:", err);
+    }
+  });
+
+  child.on('error', async (err) => {
+    try {
+      const internalClient = await clientPromise;
+      const internalDb = internalClient.db(DB_NAME);
+      await internalDb.collection("pipeline_status").updateOne(
+        { _id: "current" } as any,
+        { $set: { status: "idle", updatedAt: new Date(), error: err.message } },
+        { upsert: true }
+      );
+    } catch (dbErr) {
+      console.error("Error setting status to idle in error handler:", dbErr);
     }
   });
 

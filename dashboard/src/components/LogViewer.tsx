@@ -11,25 +11,25 @@ interface LogEntry {
 
 export default function LogViewer({ logs }: { logs: LogEntry[] }) {
   return (
-    <div className="mt-8 flex flex-col gap-4">
+    <div className="mt-4 lg:mt-8 flex flex-col gap-2 lg:gap-4">
       <div className="flex items-center gap-2 px-2">
-        <Terminal className="text-[var(--primary)]" size={20} />
-        <h2 className="text-lg font-bold text-white">Pipeline Execution Logs</h2>
+        <Terminal className="text-[var(--primary)] w-4 h-4 lg:w-5 lg:h-5" />
+        <h2 className="text-sm lg:text-lg font-bold text-white">Pipeline Execution Logs</h2>
       </div>
 
       <div className="bg-[#0b0c14] border border-gray-800 rounded-xl overflow-hidden shadow-2xl">
         {/* Header Bar */}
-        <div className="bg-gray-900/50 px-4 py-2 border-b border-gray-800 flex items-center justify-between">
+        <div className="bg-gray-900/50 px-3 lg:px-4 py-1.5 lg:py-2 border-b border-gray-800 flex items-center justify-between">
           <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
-            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50"></div>
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
+            <div className="w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full bg-red-500/50"></div>
+            <div className="w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full bg-yellow-500/50"></div>
+            <div className="w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full bg-green-500/50"></div>
           </div>
-          <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">bash — python3 run.py</span>
+          <span className="text-[8px] lg:text-[10px] font-mono text-gray-500 uppercase tracking-widest">bash — python3 run.py</span>
         </div>
 
         {/* Content */}
-        <div className="p-4 font-mono text-xs overflow-y-auto max-h-[300px] flex flex-col gap-1 custom-scrollbar">
+        <div className="p-3 lg:p-4 font-mono text-[10px] lg:text-xs overflow-y-auto max-h-[150px] md:max-h-[220px] lg:max-h-[300px] flex flex-col gap-1 custom-scrollbar">
           {logs.length === 0 ? (
             <div className="text-gray-600 italic py-4 text-center">
               Waiting for pipeline logs... Start the pipeline to see execution details.

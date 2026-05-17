@@ -66,6 +66,9 @@ export async function GET(request: Request) {
             .limit(15)
             .toArray();
 
+          const statusDoc = await db.collection("pipeline_status").findOne({ _id: "current" } as any);
+          const isRunning = statusDoc ? statusDoc.status === "running" : false;
+
           const payload = JSON.stringify({
             input: [...injected_events, ...input_stream]
               .filter(doc => doc.is_control_message === undefined)
@@ -78,6 +81,7 @@ export async function GET(request: Request) {
             final,
             rejected,
             logs: logs.reverse(), // Send in chronological order
+            isRunning,
             metrics: {
               rejectsCount,
               apiStatus,
