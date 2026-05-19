@@ -32,32 +32,38 @@ class TransactionDecisionEngine:
         self.inference_col = mongo_client[MONGO_DB_NAME][INFERENCE_RESULTS]
         self.final_col = mongo_client[MONGO_DB_NAME][FINAL_RESULTS]
 
-    def process(self):
-        pending_docs = self.inference_col.find({"processed": False})
+    def process(self, record_id: str):
+        pending_docs = self.inference_col.find({"processed": False, "_id": record_id})
         for doc in pending_docs:
             self._evaluate_and_update(doc)
 
     def _evaluate_and_update(self, doc: dict):
+        pred_class = doc.get("pred_class")
         probability = doc.get("fraud_probability")
         doc_id = doc["_id"]
 
         credit_score = doc.get("credit_score")
-        tx_count_last_1s = doc.get("tx_count_last_1s")
-        if probability >= self.deny_threshold:
+        high_velocity_alert = doc.get("high_velocity_alert")
+
+        if pred_class == 1 and probability < self.deny_threshold:
             new_status = TransactionStatus.DENIED
+            reason = f"Model predicted fraud with high confidence ({probability:.2%})."
+
+        elif high_velocity_alert:
+            new_status = TransactionStatus.DENIED
+            reason = "High transaction velocity detected. Possible account takeover."  # noqa
+
+        elif pred_class == 0 and probability >= self.deny_threshold:
+            new_status = TransactionStatus.TO_REVISE
             reason = f"Probability ({probability:.2%}) exceeds the denial threshold."
 
         elif credit_score == 0:
             new_status = TransactionStatus.TO_REVISE
-            reason = "Credit Score is 0. Requires manual review of history."
-
-        elif tx_count_last_1s > 10:
-            new_status = TransactionStatus.TO_REVISE
-            reason = f"High transaction velocity ({tx_count_last_1s} in the last s). Possible account takeover."  # noqa
+            reason = "Credit Score is 0. Circuit Breaker fallback applied."
 
         elif probability >= self.safe_threshold:
             new_status = TransactionStatus.TO_REVISE
-            reason = f"Probability ({probability:.2%}) in the gray area. Requires manual review."
+            reason = f"Probability ({probability:.2%}) in the gray area.."
 
         else:
             new_status = TransactionStatus.APPROVED
@@ -65,7 +71,10 @@ class TransactionDecisionEngine:
                 f"Probability ({probability:.2%}) is safe and transactional behavior is normal."
             )
 
-        self.final_col.insert_one({"_id": doc_id, "status": new_status, "decision_reason": reason})
+        final_doc = {**doc, "status": new_status, "decision_reason": reason}
+        final_doc.pop("processed", None)  # Clean up the processed flag
+        self.final_col.insert_one(final_doc)
+        self.inference_col.update_one({"_id": doc_id}, {"$set": {"processed": True}})
 
     def close_connection(self):
         self.mongo_client.close()

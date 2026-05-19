@@ -4,7 +4,7 @@ import time
 from pymongo import MongoClient
 from enum import Enum
 
-from config import MONGO_DB_NAME, TRANSACTIONS_RAW
+from config import INJECTED_EVENTS_QUEUE, MONGO_DB_NAME, TRANSACTIONS_RAW
 
 logger = logging.getLogger("producer")
 
@@ -23,18 +23,19 @@ class Producer:
     ):
         self.mongo_client = mongo_client
         self.raw_col = mongo_client[MONGO_DB_NAME][TRANSACTIONS_RAW]
+        self.events_col = mongo_client[MONGO_DB_NAME][INJECTED_EVENTS_QUEUE]
 
         self._delay_mapper = {
             ProducerMode.NORMAL: lambda: random.uniform(0.5, 2.0),
             ProducerMode.DEMO: lambda: 0.05,
             ProducerMode.STRESS: lambda: 0.0,
-            ProducerMode.SLOW: lambda: 5.0,
+            ProducerMode.SLOW: lambda: 2.0,
         }
 
     def stream(self, mode: ProducerMode):
         """
-        Streams documents from MongoDB sequentially and infinitely.
-        The consumer is responsible for stopping the iteration.
+        Streams documents from MongoDB sequentially and infinitely,
+        while also injecting manual events from the events queue.
         """
         logger.info(f"Starting infinite producer stream in {mode.value} mode")
 
@@ -44,24 +45,33 @@ class Producer:
         delay_func = self._delay_mapper.get(mode, lambda: 1.0)
 
         while True:
-            query = {"_id": {"$gt": last_id}} if last_id else {}
-            cursor = self.raw_col.find(query).sort("_id", 1)
+            injected_record = self.events_col.find_one_and_delete({})
+            if injected_record:
+                injected_record["_from_event_queue"] = True
 
-            docs_found = False
-            for doc in cursor:
-                docs_found = True
-                last_id = doc["_id"]
+                logger.info("Producer: Injecting manual event/error into the stream.")
+                yield injected_record
 
-                # Yield the document to whoever is calling next()
-                yield doc
-
-                # Apply the delay based on the mode
                 wait_time = delay_func()
                 if wait_time > 0:
                     time.sleep(wait_time)
 
-            if not docs_found:
+                continue
+
+            query = {"_id": {"$gt": last_id}} if last_id else {}
+            doc = self.raw_col.find_one(query, sort=[("_id", 1)])
+
+            if doc:
+                last_id = doc["_id"]
+                yield doc
+
+                wait_time = delay_func()
+                if wait_time > 0:
+                    time.sleep(wait_time)
+            else:
                 logger.info(
                     "Reached the end of the source collection. Wrapping around to the start..."
                 )
                 last_id = None
+
+                time.sleep(0.2)
