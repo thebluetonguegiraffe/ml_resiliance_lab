@@ -22,9 +22,9 @@ class InferenceLayer:
 
         self.pipeline_run_id = pipeline_run_id
 
-    def get_sample(self) -> dict:
-        sample = self.gold_col.find_one()
-        formatted_data = {"_id": sample["_id"]}
+    def get_sample(self, record_id: str) -> dict:
+        sample = self.gold_col.find_one({"_id": record_id, "processed": False})
+        formatted_data = {"_id": sample["_id"], "internal_id": sample["internal_id"]}
 
         if "time" in sample:
             formatted_data["Time"] = sample["time"]
@@ -43,6 +43,7 @@ class InferenceLayer:
             raise ValueError("Nothing to predict. Sample data is empty.")
 
         sample_id = sample.pop("_id")
+        internal_id = sample.pop("internal_id")
 
         payload = {"dataframe_records": [sample]}
 
@@ -61,6 +62,7 @@ class InferenceLayer:
 
         return {
             "_id": sample_id,
+            "internal_id": internal_id,
             "pred_class": int(prediction),
             "fraud_probability": float(probability),
         }
@@ -72,14 +74,18 @@ class InferenceLayer:
 
         self.gold_col.update_one({"_id": original_sample["_id"]}, {"$set": {"processed": True}})
 
-    def process(self) -> dict:
-        sample_data, original_sample = self.get_sample()
+    def process(self, record_id: str) -> dict:
+        try:
+            sample_data, original_sample = self.get_sample(record_id=record_id)
 
-        if sample_data:
-            result = self.predict(sample_data)
-            self.save_inference(result, original_sample)
+            if sample_data:
+                result = self.predict(sample_data)
+                self.save_inference(result, original_sample)
 
-        return result
+            return result
+        except Exception as e:
+            e.failed_layer = "inference"
+            raise e
 
 
 if __name__ == "__main__":
