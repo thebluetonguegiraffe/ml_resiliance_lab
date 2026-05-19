@@ -14,8 +14,8 @@ export default function Header({ metrics }: { metrics?: any }) {
       <div className="flex items-center gap-4 lg:gap-12">
         <Link href="/" className="flex items-center gap-2 lg:gap-3 hover:opacity-80 transition-opacity">
           <Activity className="w-6 h-6 lg:w-8 lg:h-8 text-[var(--primary)] shrink-0" />
-          <h1 className="text-base lg:text-2xl font-bold text-white tracking-tighter uppercase">
-            ML Resilience <span className="text-[var(--primary)]">Lab</span>
+          <h1 className="text-base lg:text-2xl font-black text-white tracking-tighter uppercase leading-none">
+            ML RESILIENCE <span className="text-[var(--primary)]">LAB</span>
           </h1>
         </Link>
 
@@ -117,10 +117,12 @@ export default function Header({ metrics }: { metrics?: any }) {
               onMouseEnter={() => setHoveredTooltip('drift')}
               onMouseLeave={() => setHoveredTooltip(null)}
             >
-              <GitBranch className={`w-5 h-5 lg:w-6 lg:h-6 shrink-0 ${metrics.nightlyDriftLevel > 25 ? "text-[var(--danger)]" : "text-[var(--primary)]"}`} />
+              <GitBranch className={`w-5 h-5 lg:w-6 lg:h-6 shrink-0 ${metrics.nightlyDriftLevel >= 100 ? "text-[var(--danger)] animate-pulse" : metrics.nightlyDriftLevel >= 50 ? "text-[var(--warning)]" : "text-[var(--primary)]"}`} />
               <div className="flex flex-col">
                 <span className="text-[8px] lg:text-[10px] text-gray-500 uppercase tracking-widest font-black">Drift Level</span>
-                <span className="text-base lg:text-xl font-black text-white leading-none">{metrics.nightlyDriftLevel}%</span>
+                <span className={`text-base lg:text-xl font-black leading-none ${metrics.nightlyDriftLevel >= 100 ? "text-[var(--danger)] animate-pulse" : metrics.nightlyDriftLevel >= 50 ? "text-[var(--warning)]" : "text-white"}`}>
+                  {metrics.nightlyDriftLevel}%
+                </span>
               </div>
             </div>
             <div className={`absolute top-full mt-4 left-1/2 -translate-x-1/2 w-48 p-3 bg-gray-900/95 backdrop-blur-xl border border-gray-700 rounded-xl shadow-2xl transition-all duration-300 z-[9999] pointer-events-none ${
@@ -145,7 +147,7 @@ export default function Header({ metrics }: { metrics?: any }) {
             >
               <Users className="w-5 h-5 lg:w-6 lg:h-6 text-[var(--warning)] shrink-0" />
               <div className="flex flex-col">
-                <span className="text-[8px] lg:text-[10px] text-gray-500 uppercase tracking-widest font-black">Review Q</span>
+                <span className="text-[8px] lg:text-[10px] text-gray-500 uppercase tracking-widest font-black">Review</span>
                 <span className="text-base lg:text-xl font-black text-white leading-none">{metrics.humanReviewCount}</span>
               </div>
             </div>

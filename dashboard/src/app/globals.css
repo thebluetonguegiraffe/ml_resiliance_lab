@@ -31,36 +31,35 @@
 }
 
 /* ─── Automatic Viewport Zoom ──────────────────────────────────────────────
-   Designed for a 1440px+ monitor at 100%. On smaller screens, we scale
-   the entire UI down proportionally — exactly like setting browser zoom to
-   80% or 90% — so every element stays perfectly proportioned at any size.
+   Adjusted standard viewport zoom to 1.1 (110%) for all screens down to
+   1280px wide to ensure large laptops get the standard 110% size at 100% browser zoom.
    ─────────────────────────────────────────────────────────────────────── */
 html {
-  zoom: 1;
+  zoom: 1.1;
 }
 
-/* Large laptop (1280px–1439px) → 90% */
+/* Large laptop (1280px–1439px) → Maintain 1.1 (110%) size */
 @media (max-width: 1439px) {
-  html { zoom: 0.9; }
+  html { zoom: 1.1; }
 }
 
-/* Small laptop / tablet landscape (1024px–1279px) → 80% */
+/* Small laptop / tablet landscape (1024px–1279px) → 0.95 */
 @media (max-width: 1279px) {
-  html { zoom: 0.8; }
+  html { zoom: 0.95; }
 }
 
-/* Tablet portrait (768px–1023px) → 70% */
+/* Tablet portrait (768px–1023px) → 0.85 */
 @media (max-width: 1023px) {
-  html { zoom: 0.7; }
+  html { zoom: 0.85; }
 }
 
 /* Short viewport (laptop with browser chrome) — zoom by height too */
 @media (max-height: 820px) and (min-width: 1024px) {
-  html { zoom: 0.85; }
+  html { zoom: 0.99; }
 }
 
 @media (max-height: 740px) and (min-width: 1024px) {
-  html { zoom: 0.75; }
+  html { zoom: 0.9; }
 }
 
 body {
@@ -83,4 +82,20 @@ body {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Toast Slide In Animation */
+@keyframes slide-in-right {
+  0% {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

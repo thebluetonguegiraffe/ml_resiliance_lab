@@ -6,7 +6,7 @@ import ControlPanel from "./ControlPanel";
 import KanbanBoard from "./KanbanBoard";
 import MetricsCard from "./MetricsCard";
 import LogViewer from "./LogViewer";
-import { ShieldAlert, GitBranch, Users, LayoutDashboard, Activity } from "lucide-react";
+import { ShieldAlert, GitBranch, Users, LayoutDashboard, Activity, X } from "lucide-react";
 import GuidedTour from "./GuidedTour";
 import { resetPipeline } from "@/app/actions";
 
@@ -45,17 +45,66 @@ export default function DashboardClient() {
     }
   });
 
-  useEffect(() => {
-    // Reset pipeline on initialization to start clear
-    const initializeDashboard = async () => {
-      try {
-        await resetPipeline();
-      } catch (err) {
-        console.error("Failed to reset pipeline during dashboard init:", err);
-      }
-    };
-    initializeDashboard();
+  const [popups, setPopups] = useState<{ id: string; type: "warning" | "error"; title: string; message: string }[]>([]);
+  const [notifiedLevels, setNotifiedLevels] = useState<Set<number>>(new Set());
 
+  useEffect(() => {
+    const drift = data.metrics.nightlyDriftLevel;
+    if (drift === 0) {
+      if (notifiedLevels.size > 0) {
+        setNotifiedLevels(new Set());
+      }
+      return;
+    }
+
+    if (drift === 50 && !notifiedLevels.has(50)) {
+      const id = Math.random().toString();
+      setPopups(prev => [
+        ...prev,
+        {
+          id,
+          type: "warning",
+          title: "Adversarial Drift: 50% Detected",
+          message: "Moderate time bucket drift has been detected in the Silver Layer. Monitoring system is on alert (Yellow Indicator)."
+        }
+      ]);
+      setNotifiedLevels(prev => {
+        const next = new Set(prev);
+        next.add(50);
+        return next;
+      });
+
+      // Auto dismiss after 6 seconds
+      setTimeout(() => {
+        setPopups(prev => prev.filter(p => p.id !== id));
+      }, 6000);
+    }
+
+    if (drift >= 100 && !notifiedLevels.has(100)) {
+      const id = Math.random().toString();
+      setPopups(prev => [
+        ...prev,
+        {
+          id,
+          type: "error",
+          title: "Critical Drift: 100% (Halting Pipeline)",
+          message: "Adversarial drift has reached 100%. The system Kill Switch has automatically tripped and processing has stopped."
+        }
+      ]);
+      setNotifiedLevels(prev => {
+        const next = new Set(prev);
+        next.add(100);
+        return next;
+      });
+
+      // Auto dismiss after 6 seconds
+      setTimeout(() => {
+        setPopups(prev => prev.filter(p => p.id !== id));
+      }, 6000);
+    }
+  }, [data.metrics.nightlyDriftLevel, notifiedLevels]);
+
+  useEffect(() => {
     const eventSource = new EventSource('/api/stream');
 
     eventSource.onmessage = (event) => {
@@ -121,6 +170,40 @@ export default function DashboardClient() {
           </div>
 
         </main>
+        
+        {/* Floating Glassmorphic Toasts Container */}
+        <div className="fixed top-20 right-6 z-[99999] flex flex-col gap-3 w-80 sm:w-96 pointer-events-none">
+          {popups.map(popup => (
+            <div 
+              key={popup.id} 
+              className={`pointer-events-auto flex gap-3 p-4 rounded-xl border backdrop-blur-xl bg-gray-900/90 shadow-2xl transition-all duration-500 animate-slide-in-right ${
+                popup.type === 'error' ? 'border-[var(--danger)]' : 'border-[var(--warning)]'
+              }`}
+            >
+              <div className="mt-0.5 shrink-0">
+                {popup.type === 'error' ? (
+                  <ShieldAlert className="w-5 h-5 text-[var(--danger)] animate-bounce" />
+                ) : (
+                  <GitBranch className="w-5 h-5 text-[var(--warning)] animate-pulse" />
+                )}
+              </div>
+              <div className="flex-1 flex flex-col gap-1">
+                <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                  {popup.title}
+                </h4>
+                <p className="text-[10px] text-gray-300 font-medium leading-relaxed">
+                  {popup.message}
+                </p>
+              </div>
+              <button 
+                onClick={() => setPopups(prev => prev.filter(p => p.id !== popup.id))}
+                className="text-gray-500 hover:text-white transition-colors text-xs self-start p-0.5"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
         <GuidedTour />
       </div>
     </div>
