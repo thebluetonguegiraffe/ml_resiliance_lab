@@ -19,5 +19,14 @@ INJECTED_EVENTS_QUEUE = "injected_events_queue"
 INFERENCE_RESULTS = "inference_results"
 FINAL_RESULTS = "final_results"
 
+PIPELINE_STATUS = "pipeline_status"
+PIPELINE_LOGS = "pipeline_logs"
+
+INITIAL_DRIFT_PCT = 50.0
+DRIFT_THRESHOLD = 80.0
+
+STATUS_COLL_ID = "current"
+
 SCHEMA_VERSION = "1.0"
 FAULT_BURST_SIZE = 5
+FAULT_BURST_THRESHOLD = 3
