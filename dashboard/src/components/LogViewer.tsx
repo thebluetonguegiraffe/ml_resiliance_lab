@@ -1,6 +1,7 @@
 "use client";
 
 import { Terminal } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface LogEntry {
   _id: string;
@@ -10,6 +11,37 @@ interface LogEntry {
 }
 
 export default function LogViewer({ logs }: { logs: LogEntry[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const prevLogsLength = useRef(logs.length);
+
+  // Scroll to bottom when new logs arrive, ONLY if the user was already at the bottom
+  useEffect(() => {
+    if (isAtBottom && containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [logs, isAtBottom]);
+
+  // Force scroll to bottom when transitioning from 0 to some logs (e.g. after start/reset)
+  useEffect(() => {
+    if (prevLogsLength.current === 0 && logs.length > 0) {
+      setIsAtBottom(true);
+      if (containerRef.current) {
+        containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      }
+    }
+    prevLogsLength.current = logs.length;
+  }, [logs]);
+
+  // Monitor scroll action to check if the user has scrolled up to see older logs
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    // Allow a high margin of error (100px) to absorb browser zooms, subpixel rendering, and viewport scaling
+    const atBottom = scrollHeight - scrollTop - clientHeight < 100;
+    setIsAtBottom(atBottom);
+  };
+
   return (
     <div className="mt-4 lg:mt-8 flex flex-col gap-2 lg:gap-4">
       <div className="flex items-center gap-2 px-2">
@@ -29,9 +61,13 @@ export default function LogViewer({ logs }: { logs: LogEntry[] }) {
         </div>
 
         {/* Content */}
-        <div className="p-3 lg:p-4 font-mono text-[10px] lg:text-xs overflow-y-auto max-h-[150px] md:max-h-[220px] lg:max-h-[300px] flex flex-col gap-1 custom-scrollbar">
+        <div 
+          ref={containerRef}
+          onScroll={handleScroll}
+          className="p-3 lg:p-4 font-mono text-[10px] lg:text-xs overflow-y-auto h-[150px] md:h-[220px] lg:h-[300px] flex flex-col gap-1 custom-scrollbar"
+        >
           {logs.length === 0 ? (
-            <div className="text-gray-600 italic py-4 text-center">
+            <div className="text-gray-600 italic py-4 text-center my-auto">
               Waiting for pipeline logs... Start the pipeline to see execution details.
             </div>
           ) : (
@@ -40,7 +76,7 @@ export default function LogViewer({ logs }: { logs: LogEntry[] }) {
                 <span className="text-gray-600 shrink-0 select-none">
                   [{new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}]
                 </span>
-                <span className={`${log.type === 'stderr' ? 'text-red-400' : 'text-gray-300'} break-all`}>
+                <span className="text-white break-all">
                   {log.message}
                 </span>
               </div>

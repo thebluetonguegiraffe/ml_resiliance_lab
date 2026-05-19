@@ -3,6 +3,8 @@ import TimeDistributionChart from "@/components/TimeDistributionChart";
 import { getTransactionTimeDistributions, getDashboardMetrics } from "@/app/actions";
 import { Database, Cpu, AlertTriangle } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function ModelPage() {
   const distributionData = await getTransactionTimeDistributions();
   const metrics = await getDashboardMetrics();

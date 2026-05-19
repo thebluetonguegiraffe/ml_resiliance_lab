@@ -17,70 +17,55 @@ export async function GET(request: Request) {
             return await db.collection(collectionName)
               .find(query)
               .sort({ _id: -1 })
-              .limit(10)
               .toArray();
           };
 
           const [input_stream, injected_events, bronze, silver, gold, inference, final, rejected] = await Promise.all([
             db.collection("transactions_input")
-              .find({ is_control_message: { $ne: true } })
+              .find({ is_control_message: { $ne: true }, processed: false })
               .sort({ _id: -1 })
-              .limit(10)
               .toArray(),
             db.collection("injected_events_queue")
               .find({ is_control_message: { $ne: true } })
               .sort({ _id: -1 })
-              .limit(10)
               .toArray(),
             fetchRecent("transactions_bronze"),
             fetchRecent("transactions_silver"),
             fetchRecent("transactions_gold"),
             fetchRecent("inference_results"),
-            fetchRecent("final_results", false), // Show all final results
+            db.collection("final_results")
+              .find({})
+              .sort({ aggregated_at: -1 })
+              .toArray(),
             fetchRecent("transactions_rejected", false) // Show all rejected
           ]);
 
-          const lastApiEvent = await db.collection("injected_events_queue")
-            .find({ target: "silver_api" })
-            .sort({ _id: -1 })
-            .limit(1)
-            .next();
-          const apiStatus = (lastApiEvent && lastApiEvent.is_down) ? "DOWN" : "UP";
+          const statusDoc = await db.collection("pipeline_status").findOne({ _id: "current" } as any);
+          const isRunning = statusDoc ? statusDoc.status === "running" : false;
+          const apiStatus = (statusDoc && statusDoc.api_is_up === false) ? "DOWN" : "UP";
 
           const rejectsCount = await db.collection("transactions_rejected").countDocuments();
-          const humanReviewCount = await db.collection("transactions_gold").countDocuments({ needs_manual_review: true });
+          const humanReviewCount = await db.collection("final_results").countDocuments({ status: "TO_REVISE" });
 
-          let driftSum = 0;
-          let driftCount = 0;
-          for (const doc of silver) {
-            if (doc.ml_features && typeof doc.ml_features.drift_score === 'number') {
-              driftSum += doc.ml_features.drift_score;
-              driftCount++;
-            }
-          }
-          const nightlyDriftLevel = driftCount > 0 ? Math.round((driftSum / driftCount) * 100) : 0;
+          const nightlyDriftLevel = (statusDoc && statusDoc.drift_level !== undefined) ? statusDoc.drift_level : 0;
 
           const logs = await db.collection("pipeline_logs")
             .find()
-            .sort({ timestamp: -1 })
-            .limit(15)
+            .sort({ _id: 1 })
             .toArray();
-
-          const statusDoc = await db.collection("pipeline_status").findOne({ _id: "current" } as any);
-          const isRunning = statusDoc ? statusDoc.status === "running" : false;
 
           const payload = JSON.stringify({
             input: [...injected_events, ...input_stream]
               .filter(doc => doc.is_control_message === undefined)
               .sort((a, b) => b._id.toString().localeCompare(a._id.toString())) // Safer sort for mixed ID types
-              .slice(0, 10),
+              .slice(0, 50),
             bronze,
             silver,
             gold,
             inference,
             final,
             rejected,
-            logs: logs.reverse(), // Send in chronological order
+            logs: logs, // Already in correct chronological order (oldest first)
             isRunning,
             metrics: {
               rejectsCount,

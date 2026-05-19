@@ -13,47 +13,22 @@ export async function getDashboardMetrics() {
   // Data Contract Rejects
   const rejectsCount = await db.collection("transactions_rejected").countDocuments();
 
-  // API Status (Based on if an outage event exists and is not processed, or just check the last injected API status event)
-  // The pipeline reads from `injected_events_queue`.
-  // Alternatively, we can check the most recent event targeting 'silver_api' in the queue.
-  // The pipeline consumes and deletes these events. If we want the status, we might just have to 
-  // track it or if the queue is empty assume UP. 
-  // For the dashboard, we can just say UP unless there's a recent outage event.
-  // Wait, if the pipeline consumed it, it won't be in the queue.
-  // Actually, we can check if there are many silver errors recently, but for simplicity let's mock the API status for now
-  // or query the queue if it's pending.
-  const lastApiEvent = await db.collection("injected_events_queue")
-    .find({ target: "silver_api" })
-    .sort({ _id: -1 })
-    .limit(1)
-    .next();
-  const apiStatus = (lastApiEvent && lastApiEvent.is_down) ? "DOWN" : "UP";
+
+  // API Status (Based on the persistent api_is_up field in pipeline_status collection)
+  const statusDoc = await db.collection("pipeline_status").findOne({ _id: "current" } as any);
+  const apiStatus = (statusDoc && statusDoc.api_is_up === false) ? "DOWN" : "UP";
 
   // Human Review Queue (Gold transactions flagged)
-  const humanReviewCount = await db.collection("transactions_gold").countDocuments({ needs_manual_review: true });
+  const humanReviewCount = await db.collection("final_results").countDocuments({ status: "TO_REVISE" });
 
-  // Nightly Drift Level: Let's mock or calculate based on recent transactions_silver drift_score
-  const recentSilver = await db.collection("transactions_silver")
-    .find({ "ml_features.drift_score": { $exists: true } })
-    .sort({ timestamp: -1 })
-    .limit(100)
-    .toArray();
-    
-  let driftSum = 0;
-  let driftCount = 0;
-  for (const doc of recentSilver) {
-    if (doc.ml_features && typeof doc.ml_features.drift_score === 'number') {
-        driftSum += doc.ml_features.drift_score;
-        driftCount++;
-    }
-  }
-  const avgDrift = driftCount > 0 ? (driftSum / driftCount) * 100 : 0; // percentage
+  // Nightly Drift Level: fetched directly from pipeline status
+  const nightlyDriftLevel = (statusDoc && statusDoc.drift_level !== undefined) ? statusDoc.drift_level : 0;
 
   return {
     rejectsCount,
     apiStatus,
     humanReviewCount,
-    nightlyDriftLevel: Math.round(avgDrift)
+    nightlyDriftLevel
   };
 }
 
@@ -67,8 +42,8 @@ export async function getRecentAlerts() {
     .limit(5)
     .toArray();
 
-  const goldReview = await db.collection("transactions_gold")
-    .find({ needs_manual_review: true })
+  const goldReview = await db.collection("final_results")
+    .find({ status: "TO_REVISE" })
     .sort({ _id: -1 })
     .limit(5)
     .toArray();
@@ -88,18 +63,18 @@ export async function getRecentAlerts() {
 export async function getHourlyDistribution() {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
-  
+
   // A simplified distribution. In a real scenario we aggregate by timestamp hour.
   const silverDocs = await db.collection("transactions_silver").find().limit(500).toArray();
   const hours = Array.from({ length: 24 }, () => 0);
-  
+
   silverDocs.forEach(doc => {
-      if (doc.timestamp) {
-          const date = new Date(doc.timestamp);
-          if (!isNaN(date.getTime())) {
-             hours[date.getHours()]++;
-          }
+    if (doc.timestamp) {
+      const date = new Date(doc.timestamp);
+      if (!isNaN(date.getTime())) {
+        hours[date.getHours()]++;
       }
+    }
   });
 
   return hours.map((count, hour) => ({ name: `${hour}:00`, value: count }));
@@ -109,16 +84,24 @@ export async function getHourlyDistribution() {
 export async function injectInvalidTx() {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
-  
+
+  const statusDoc = await db.collection("pipeline_status").findOne({ _id: "current" } as any);
+  const currentCounter = (statusDoc && statusDoc.injected_counter !== undefined) ? statusDoc.injected_counter : 0;
+
   // Sample 1 record from raw collection like fault_injector.py
   const rawRecords = await db.collection("transactions_raw").aggregate([{ $sample: { size: 1 } }]).toArray();
   if (rawRecords.length > 0) {
     const record = rawRecords[0];
-    delete record._id; 
-    record.transaction_id = `INJ-INVALID-Tx`;
+    delete record._id;
+    delete record.transaction_id;
+    record.internal_id = `INJ-${currentCounter + 1}-INVALID`;
     record.amount = -999.0;
-    
+
     await db.collection("injected_events_queue").insertOne(record);
+    await db.collection("pipeline_status").updateOne(
+      { _id: "current" } as any,
+      { $inc: { injected_counter: 1 } }
+    );
   }
   revalidatePath("/");
 }
@@ -127,19 +110,29 @@ export async function injectNightlyBurst() {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
   
-  // Sample FAULT_BURST_SIZE records and set time to 4 AM (14400s)
-  const rawRecords = await db.collection("transactions_raw").aggregate([{ $sample: { size: FAULT_BURST_SIZE } }]).toArray();
+  const statusDoc = await db.collection("pipeline_status").findOne({ _id: "current" } as any);
+  const currentCounter = (statusDoc && statusDoc.injected_counter !== undefined) ? statusDoc.injected_counter : 0;
+
+  const rawRecords = await db.collection("transactions_raw").aggregate([{ $sample: { size: FAULT_BURST_SIZE-1 } }]).toArray();
   const driftRecords = rawRecords.map((record, i) => {
     delete record._id;
-    return { 
-      ...record, 
-      transaction_id: `INJ-Night-bursts-${i + 1}`,
-      time: 14400.0
+    delete record.transaction_id;
+    
+    const randomTime = Math.floor(Math.random() * (18000 - 14400 + 1)) + 14400;
+
+    return {
+      ...record,
+      internal_id: `INJ-${currentCounter + i + 1}-NIGHT`,
+      time: parseFloat(randomTime.toFixed(1))
     };
   });
 
   if (driftRecords.length > 0) {
     await db.collection("injected_events_queue").insertMany(driftRecords);
+    await db.collection("pipeline_status").updateOne(
+      { _id: "current" } as any,
+      { $inc: { injected_counter: FAULT_BURST_SIZE-1 } }
+    );
   }
   revalidatePath("/");
 }
@@ -147,42 +140,74 @@ export async function injectNightlyBurst() {
 export async function toggleApiOutage() {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
-  await db.collection("injected_events_queue").insertOne({
-      is_control_message: true,
-      target: "silver_api",
-      is_down: true
-  });
+  await db.collection("pipeline_status").updateOne(
+    { _id: "current" } as any,
+    { $set: { api_is_up: false } },
+    { upsert: true }
+  );
   revalidatePath("/");
 }
 
 export async function toggleApiRecovery() {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
-  await db.collection("injected_events_queue").insertOne({
-      is_control_message: true,
-      target: "silver_api",
-      is_down: false
-  });
+  await db.collection("pipeline_status").updateOne(
+    { _id: "current" } as any,
+    { $set: { api_is_up: true } },
+    { upsert: true }
+  );
   revalidatePath("/");
 }
 
 export async function injectVelocityBurst() {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
-  
+
+  const statusDoc = await db.collection("pipeline_status").findOne({ _id: "current" } as any);
+  const currentCounter = (statusDoc && statusDoc.injected_counter !== undefined) ? statusDoc.injected_counter : 0;
+
   // Sample FAULT_BURST_SIZE records and set fixed time
   const rawRecords = await db.collection("transactions_raw").aggregate([{ $sample: { size: FAULT_BURST_SIZE } }]).toArray();
   const velocityRecords = rawRecords.map((record, i) => {
     delete record._id;
-    return { 
-      ...record, 
-      transaction_id: `INJ-VELOCITY-bursts-${i + 1}`,
+    delete record.transaction_id;
+    return {
+      ...record,
+      internal_id: `INJ-${currentCounter + i + 1}-VELOCITY`,
       time: 20000.0
     };
   });
 
   if (velocityRecords.length > 0) {
     await db.collection("injected_events_queue").insertMany(velocityRecords);
+    await db.collection("pipeline_status").updateOne(
+      { _id: "current" } as any,
+      { $inc: { injected_counter: FAULT_BURST_SIZE } }
+    );
+  }
+  revalidatePath("/");
+}
+
+export async function injectIncorrectSample() {
+  const client = await clientPromise;
+  const db = client.db(DB_NAME);
+
+  const statusDoc = await db.collection("pipeline_status").findOne({ _id: "current" } as any);
+  const currentCounter = (statusDoc && statusDoc.injected_counter !== undefined) ? statusDoc.injected_counter : 0;
+
+  // query the raw transactions collection for a document where class: 1
+  const rawRecords = await db.collection("transactions_raw").find({ class: 1 }).limit(1).toArray();
+  if (rawRecords.length > 0) {
+    const record = rawRecords[0];
+    delete (record as any)._id;
+    delete (record as any).transaction_id;
+    (record as any).internal_id = `INJ-${currentCounter + 1}-FRAUD`;
+
+    await db.collection("injected_events_queue").insertOne(record);
+    await db.collection("pipeline_status").updateOne(
+      { _id: "current" } as any,
+      { $inc: { injected_counter: 1 } }
+    );
   }
   revalidatePath("/");
 }
@@ -190,33 +215,6 @@ export async function injectVelocityBurst() {
 export async function resetPipeline() {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
-  await Promise.all([
-      db.collection("transactions_input").deleteMany({}),
-      db.collection("transactions_bronze").deleteMany({}),
-      db.collection("transactions_silver").deleteMany({}),
-      db.collection("transactions_gold").deleteMany({}),
-      db.collection("transactions_rejected").deleteMany({}),
-      db.collection("injected_events_queue").deleteMany({}),
-      db.collection("inference_results").deleteMany({}),
-      db.collection("final_results").deleteMany({}),
-      db.collection("pipeline_logs").deleteMany({}),
-      db.collection("pipeline_status").updateOne(
-        { _id: "current" } as any,
-        { $set: { status: "idle", updatedAt: new Date() } },
-        { upsert: true }
-      )
-  ]);
-  revalidatePath("/");
-}
-
-export async function startPipeline() {
-  const { spawn } = await import('child_process');
-  const path = await import('path');
-  
-  const client = await clientPromise;
-  const db = client.db(DB_NAME);
-
-  // Clear all collections so the board & logs appear empty before the new run
   await Promise.all([
     db.collection("transactions_input").deleteMany({}),
     db.collection("transactions_bronze").deleteMany({}),
@@ -227,12 +225,38 @@ export async function startPipeline() {
     db.collection("inference_results").deleteMany({}),
     db.collection("final_results").deleteMany({}),
     db.collection("pipeline_logs").deleteMany({}),
+    db.collection("pipeline_status").updateOne(
+      { _id: "current" } as any,
+      { $set: { status: "idle", api_is_up: true, updatedAt: new Date(), injected_counter: 0 } },
+      { upsert: true }
+    )
+  ]);
+  revalidatePath("/");
+}
+
+export async function startPipeline(samples: number = 10, workers: number = 1) {
+  const { spawn } = await import('child_process');
+  const path = await import('path');
+
+  const client = await clientPromise;
+  const db = client.db(DB_NAME);
+
+  // Clear all collections so the board & logs appear empty before the new run
+  await Promise.all([
+    db.collection("transactions_input").deleteMany({}),
+    db.collection("transactions_bronze").deleteMany({}),
+    db.collection("transactions_silver").deleteMany({}),
+    db.collection("transactions_gold").deleteMany({}),
+    db.collection("transactions_rejected").deleteMany({}),
+    db.collection("inference_results").deleteMany({}),
+    db.collection("final_results").deleteMany({}),
+    db.collection("pipeline_logs").deleteMany({}),
   ]);
 
   // Set status to running
   await db.collection("pipeline_status").updateOne(
     { _id: "current" } as any,
-    { $set: { status: "running", startedAt: new Date() } },
+    { $set: { status: "running", startedAt: new Date(), injected_counter: 0 } },
     { upsert: true }
   );
 
@@ -240,17 +264,18 @@ export async function startPipeline() {
   const scriptPath = path.resolve(process.cwd(), '../src/pipeline/run.py');
   const venvPythonPath = path.resolve(process.cwd(), '../.venv/bin/python');
   const projectRoot = path.resolve(process.cwd(), '..');
-  
-  const child = spawn(venvPythonPath, [scriptPath, '--samples', '10', '--mode', 'demo'], {
+
+  const child = spawn(venvPythonPath, ['-u', scriptPath, '--samples', String(samples), '--workers', String(workers), '--mode', 'demo'], {
     detached: true,
     cwd: projectRoot,
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: { 
-      ...process.env, 
-      PYTHONPATH: projectRoot 
+    env: {
+      ...process.env,
+      PYTHONUNBUFFERED: "1",
+      PYTHONPATH: projectRoot
     }
   });
-  
+
   child.stdout?.on('data', async (data) => {
     const lines = data.toString().split('\n').filter((l: string) => l.trim());
     for (const line of lines) {
@@ -310,7 +335,7 @@ export async function getTransactionTimeDistributions() {
   const db = client.db(DB_NAME);
   // Get a representative sample from silver layer
   const transactions = await db.collection("transactions_silver").find().limit(2000).toArray();
-  
+
   if (transactions.length < 50) {
     // Fallback to pre-calculated distribution from CSV if DB is empty
     try {
@@ -332,7 +357,7 @@ export async function getTransactionTimeDistributions() {
       }
     }
   });
-  
+
   return hours.map((count, hour) => ({ name: `${hour}:00`, value: count }));
 }
 
