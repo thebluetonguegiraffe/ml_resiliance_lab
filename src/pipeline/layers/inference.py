@@ -1,12 +1,12 @@
 import logging
 import os
+from dotenv import load_dotenv
 import requests
 
 from pymongo import MongoClient
 
 from config import INFERENCE_RESULTS, MONGO_DB_NAME, TRANSACTIONS_GOLD
 
-MLFLOW_API_URL = os.getenv("MLFLOW_API_URL")
 
 logger = logging.getLogger("inference_layer")
 
@@ -17,10 +17,13 @@ class InferenceLayer:
         mongo_client: MongoClient,
         pipeline_run_id: str,
     ):
+        load_dotenv()
         self.gold_col = mongo_client[MONGO_DB_NAME][TRANSACTIONS_GOLD]
         self.inference_col = mongo_client[MONGO_DB_NAME][INFERENCE_RESULTS]
 
         self.pipeline_run_id = pipeline_run_id
+
+        self.mflow_api_url = os.getenv("MLFLOW_API_URL")
 
     def get_sample(self, record_id: str) -> dict:
         sample = self.gold_col.find_one({"_id": record_id, "processed": False})
@@ -48,7 +51,7 @@ class InferenceLayer:
         payload = {"dataframe_records": [sample]}
 
         response = requests.post(
-            MLFLOW_API_URL,
+            self.mflow_api_url,
             json=payload,
             headers={"Content-Type": "application/json"},
             timeout=10,

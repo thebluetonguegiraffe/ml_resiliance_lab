@@ -2,27 +2,10 @@ FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-
-# URI de seguimiento de MLflow apuntando al archivo interno copiado en la imagen
 ENV MLFLOW_TRACKING_URI="sqlite:////app/src/model/mlflow.db"
 
 WORKDIR /app
 
-# Instalar dependencias necesarias para servir el modelo
-RUN pip install --no-cache-dir mlflow scikit-learn pandas xgboost
-
-# Copiar el directorio del modelo (contiene base de datos de experimentos sqlite y artefactos)
-COPY src/model /app/src/model
-COPY config.py /app/config.py
-
-# Crear un usuario y grupo dedicado sin privilegios para ejecutar el servicio MLflow de manera segura
-RUN groupadd -g 10002 mlflowgroup && \
-    useradd -u 10002 -g mlflowgroup -m -s /bin/bash mlflowuser && \
-    chown -R mlflowuser:mlflowgroup /app
-
-USER mlflowuser
+RUN pip install --no-cache-dir mlflow scikit-learn pandas
 
 EXPOSE 5001
-
-# Comando por defecto para realizar la migración de rutas e iniciar el servicio
-CMD ["sh", "-c", "python3 /app/src/model/prepare_db.py && mlflow models serve -m models:/fraud-detector/2 -h 0.0.0.0 -p 5001 --env-manager local"]
