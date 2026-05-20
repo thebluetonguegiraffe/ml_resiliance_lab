@@ -77,11 +77,11 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
   };
 
   return (
-    <div className="flex-1 w-full h-full overflow-hidden pb-2 min-h-0">
-      <div className="flex h-full gap-3 px-1 w-full pb-2 min-h-0">
+    <div className="flex-1 w-full h-full overflow-hidden pb-2 min-h-[300px]">
+      <div className="flex h-full gap-3 px-1 w-full pb-2 min-h-[300px]">
         
         {/* Main Flow */}
-        <div className="h-full flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-0">
+        <div className="h-full flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-[300px]">
           <KanbanColumn 
             title="INPUT QUEUE" 
             count={data.input.length} 
@@ -92,10 +92,10 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
         </div>
 
         {/* Medallion Group (Bronze, Silver, Gold) with Spanning Rejected Stack below */}
-        <div className="h-full flex flex-col gap-3 min-w-[380px] max-w-[1000px] flex-[3] min-h-0">
+        <div className="h-full flex flex-col gap-3 min-w-[380px] max-w-[1000px] flex-[3] min-h-[300px]">
           {/* Main 3 medallion stages */}
-          <div className="flex-1 flex gap-3 w-full min-h-0">
-            <div className="flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-0">
+          <div className="flex-1 flex gap-3 w-full min-h-[300px]">
+            <div className="flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-[300px]">
               <KanbanColumn 
                 title="BRONZE LAYER" 
                 count={data.bronze.length} 
@@ -104,7 +104,7 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
                 colorVar="#a0a0a0" 
               />
             </div>
-            <div className="flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-0">
+            <div className="flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-[300px]">
               <KanbanColumn 
                 title="SILVER LAYER" 
                 count={data.silver.length} 
@@ -113,7 +113,7 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
                 colorVar="#a9dfd8" 
               />
             </div>
-            <div className="flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-0">
+            <div className="flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-[300px]">
               <KanbanColumn 
                 title="GOLD LAYER" 
                 count={data.gold.length} 
@@ -125,7 +125,7 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
           </div>
           
           {/* Single Unified Spanning Rejected Stack */}
-          <div className="h-2/5 shrink-0 flex flex-col w-full min-h-0">
+          <div className="h-2/5 shrink-0 flex flex-col w-full min-h-[50px]">
             <KanbanColumn 
               title="REJECTED STACK" 
               count={data.rejected.length} 
@@ -137,7 +137,7 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
           </div>
         </div>
 
-        <div className="h-full flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-0">
+        <div className="h-full flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-[300px]">
           <KanbanColumn 
             title="INFERENCE LAYER" 
             count={data.inference.length} 
@@ -147,7 +147,7 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
           />
         </div>
 
-        <div className="h-full flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-0">
+        <div className="h-full flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-[300px]">
           <KanbanColumn 
             title="FINAL STATE" 
             count={data.final.length} 

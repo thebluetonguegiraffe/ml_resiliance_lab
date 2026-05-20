@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ML Resilience Lab | Dashboard",
+  title: "ML Resilience Lab",
   description: "Real-time Monitoring Dashboard for the ML Resilience Lab",
 };
 

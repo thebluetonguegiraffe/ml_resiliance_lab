@@ -10,3 +10,6 @@ stop-mlflow:
 
 logs-mlflow:
 	docker compose logs -f mlflow-serve
+
+start-dashboard:
+	docker compose up -d --build dashboard

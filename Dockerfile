@@ -1,76 +1,34 @@
-FROM python:3.11-slim AS python-builder
+FROM node:20-bookworm-slim
 
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+ENV VIRTUAL_ENV=/opt/venv
+RUN uv venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 WORKDIR /app
 
-    curl \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-ADD https://astral.sh/uv/install.sh /uv-installer.sh
-RUN sh /uv-installer.sh && rm /uv-installer.sh
-ENV PATH="/root/.local/bin/:$PATH"
 
 COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen
 
-RUN uv venv .venv && \
-    uv pip install --python .venv/bin/python -r pyproject.toml
-
-
-FROM node:20-slim AS node-builder
-
-ENV NEXT_TELEMETRY_DISABLED=1
+COPY dashboard/package*.json ./dashboard/
 WORKDIR /app/dashboard
-
-COPY dashboard/package.json dashboard/package-lock.json ./
 RUN npm ci
 
-COPY dashboard/ ./
-RUN npm run build
-
-
-FROM python:3.11-slim AS runner
-
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-ENV NEXT_TELEMETRY_DISABLED=1
-FROM python:3.11-slim AS runner
-
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-ENV NEXT_TELEMETRY_DISABLED=1
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    ca-certificates \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
-
-COPY --from=python-builder /app/.venv /app/.venv
-
-COPY config.py ./
+COPY dashboard/ ./dashboard/
 COPY src/ ./src/
-COPY dataset/ ./dataset/
+COPY config.py ./config.py
 
 WORKDIR /app/dashboard
-COPY --from=node-builder /app/dashboard/package.json ./package.json
-COPY --from=node-builder /app/dashboard/node_modules ./node_modules
-COPY --from=node-builder /app/dashboard/.next ./.next
-COPY --from=node-builder /app/dashboard/public ./public
+RUN npm run build
 
-RUN groupadd -g 10001 appgroup && \
-    useradd -u 10000 -g appgroup -m -s /bin/bash appuser && \
-    chown -R appuser:appgroup /app
-
-USER appuser
-
-EXPOSE 3000
+EXPOSE 3001
 
 CMD ["npm", "run", "start"]

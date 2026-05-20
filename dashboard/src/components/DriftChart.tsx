@@ -14,8 +14,8 @@ export default function DriftChart({ data }: DriftChartProps) {
         <Activity className="text-[var(--primary)]" />
         Transaction Volume by Hour
       </h2>
-      <div className="flex-1 w-full min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="flex-1 w-full min-h-[300px]">
+        <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={300}>
           <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
             <XAxis 

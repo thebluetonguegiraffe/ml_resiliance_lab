@@ -11,3 +11,18 @@ services:
     environment:
       - MLFLOW_TRACKING_URI=sqlite:///${PWD}/src/model/mlflow.db
     command: mlflow models serve -m "models:/fraud-detector/2" -h 0.0.0.0 -p 5001 --env-manager local
+  
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      - mlflow-serve
+    environment:
+      - MLFLOW_API_URL=http://mlflow-serve:5001/invocations
+      - NEXT_PUBLIC_MLFLOW_API_URL=http://localhost:5001 
+    restart: unless-stopped

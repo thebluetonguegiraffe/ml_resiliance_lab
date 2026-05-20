@@ -19,7 +19,7 @@ export default function TimeDistributionChart({ data }: { data: DataPoint[] }) {
       </h3>
 
       <div className="w-full h-[350px]">
-        <ResponsiveContainer width="100%" height="100%" debounce={50}>
+        <ResponsiveContainer width="100%" height="100%" debounce={50} minWidth={100} minHeight={300}>
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#2d2d3d" vertical={false} />
             <XAxis
