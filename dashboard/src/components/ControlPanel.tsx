@@ -147,7 +147,7 @@ export default function ControlPanel({ apiStatus, isRunning: serverIsRunning }: 
             }`}>
               <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--primary)] rounded-t-xl opacity-60"></div>
               <p className="text-[10px] text-gray-200 font-medium leading-relaxed text-center">
-                Number of test transactions to inject into pipeline.
+                Number of transactions to inject into pipeline.
               </p>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-gray-700"></div>
             </div>
@@ -223,7 +223,7 @@ export default function ControlPanel({ apiStatus, isRunning: serverIsRunning }: 
             }`}>
               <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--danger)] rounded-t-xl opacity-60"></div>
               <p className="text-[10px] text-gray-200 font-medium leading-relaxed text-center">
-                Injects a raw transaction with negative/corrupted timestamp to test schema validation rules.
+                Injects a raw corrupted transaction to test schema validation rules.
               </p>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-gray-700"></div>
             </div>
@@ -246,7 +246,7 @@ export default function ControlPanel({ apiStatus, isRunning: serverIsRunning }: 
             }`}>
               <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--danger)] rounded-t-xl opacity-60"></div>
               <p className="text-[10px] text-gray-200 font-medium leading-relaxed text-center">
-                Injects an actual known fraudulent transaction (Class 1) from raw collections.
+                Injects an actual known fraudulent transaction.
               </p>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-gray-700"></div>
             </div>
@@ -269,7 +269,7 @@ export default function ControlPanel({ apiStatus, isRunning: serverIsRunning }: 
             }`}>
               <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--warning)] rounded-t-xl opacity-60"></div>
               <p className="text-[10px] text-gray-200 font-medium leading-relaxed text-center">
-                Simulates a high volume spike in nighttime transactions to test concept drift.
+                Simulates a high volume spike in nighttime transactions to test data drift.
               </p>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-gray-700"></div>
             </div>
@@ -292,7 +292,7 @@ export default function ControlPanel({ apiStatus, isRunning: serverIsRunning }: 
             }`}>
               <div className={`absolute top-0 left-0 right-0 h-1 ${isApiDown ? 'bg-[var(--success)]' : 'bg-[var(--danger)]'} rounded-t-xl opacity-60`}></div>
               <p className="text-[10px] text-gray-200 font-medium leading-relaxed text-center">
-                {isApiDown ? "Recovers the downstream ML scoring API back to normal operations." : "Simulates an outage of the downstream ML scoring API to trigger the circuit breaker."}
+                {isApiDown ? "Recovers the downstream ML scoring API back to normal operations." : "Simulates an outage of the downstream enrichment API to trigger the circuit breaker."}
               </p>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-gray-700"></div>
             </div>
@@ -315,7 +315,7 @@ export default function ControlPanel({ apiStatus, isRunning: serverIsRunning }: 
             }`}>
               <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500 rounded-t-xl opacity-60"></div>
               <p className="text-[10px] text-gray-200 font-medium leading-relaxed text-center">
-                Triggers a high frequency transaction burst (&gt;10 tx/s) for a single cardholder.
+                Triggers a high frequency transaction burst (&gt;4 tx/s) for a single cardholder.
               </p>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-gray-700"></div>
             </div>

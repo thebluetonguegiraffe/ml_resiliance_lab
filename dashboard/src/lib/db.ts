@@ -1,24 +1,34 @@
 import { MongoClient } from "mongodb";
 
-const uri = process.env.MONGO_URI || "mongodb+srv://thebluetonguegiraffe_db_user:IODYzAbrSW8VNV1a@the-blue-tongue-giraffe.ierqltd.mongodb.net/";
 const options = {};
 
-let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
+const uri = process.env.MONGO_URI;
 
-if (process.env.NODE_ENV === "development") {
-  let globalWithMongo = global as typeof globalThis & {
-    _mongoClientPromise?: Promise<MongoClient>;
-  };
-
-  if (!globalWithMongo._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    globalWithMongo._mongoClientPromise = client.connect();
-  }
-  clientPromise = globalWithMongo._mongoClientPromise;
+if (!uri) {
+  // Return a rejected promise instead of throwing immediately during module evaluation.
+  // This allows 'next build' to compile successfully without env vars, while failing
+  // safely at runtime if the variable is still missing when database access is requested.
+  clientPromise = Promise.reject(
+    new Error(
+      "Critical Error: MONGO_URI environment variable is not defined. " +
+      "Please define it in your environment or configuration settings."
+    )
+  );
 } else {
-  client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  const client = new MongoClient(uri, options);
+  if (process.env.NODE_ENV === "development") {
+    let globalWithMongo = global as typeof globalThis & {
+      _mongoClientPromise?: Promise<MongoClient>;
+    };
+
+    if (!globalWithMongo._mongoClientPromise) {
+      globalWithMongo._mongoClientPromise = client.connect();
+    }
+    clientPromise = globalWithMongo._mongoClientPromise;
+  } else {
+    clientPromise = client.connect();
+  }
 }
 
 export default clientPromise;

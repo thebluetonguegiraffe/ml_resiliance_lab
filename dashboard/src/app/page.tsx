@@ -44,12 +44,12 @@ export default function LandingPage() {
         </div>
 
         <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter uppercase mb-4 max-w-4xl leading-[0.9]">
-          Real-time <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary)] to-purple-500">ML Pipeline</span> Monitoring & Stress Testing
+          Real-time <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary)] to-purple-500">Fraud Detection </span> Pipeline & Stress Testing
         </h2>
 
         <p className="text-gray-400 text-xs md:text-sm lg:text-base max-w-xl mb-6 leading-relaxed">
-          Experience the intersection of high-frequency data engineering and resilient machine learning. 
-          Monitor, simulate failures, and analyze model behavior in mission-critical environments.
+          Experience how credit card transactions are processed and how fraud is detected in real time using a machine learning model and an robust resilient pipeline.
+          Monitor the system, simulate data failures, and analyze how the model behaves under pressure.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3.5 shrink-0">
