@@ -83,7 +83,7 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
         {/* Main Flow */}
         <div className="h-full flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-0">
           <KanbanColumn 
-            title="Input Queue" 
+            title="INPUT QUEUE" 
             count={data.input.length} 
             transactions={mapTransactions(data.input)} 
             layer="input" 
@@ -97,7 +97,7 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
           <div className="flex-1 flex gap-3 w-full min-h-0">
             <div className="flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-0">
               <KanbanColumn 
-                title="Bronze" 
+                title="BRONZE LAYER" 
                 count={data.bronze.length} 
                 transactions={mapTransactions(data.bronze)} 
                 layer="bronze" 
@@ -106,7 +106,7 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
             </div>
             <div className="flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-0">
               <KanbanColumn 
-                title="Silver" 
+                title="SILVER LAYER" 
                 count={data.silver.length} 
                 transactions={mapTransactions(data.silver)} 
                 layer="silver" 
@@ -115,7 +115,7 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
             </div>
             <div className="flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-0">
               <KanbanColumn 
-                title="Gold" 
+                title="GOLD LAYER" 
                 count={data.gold.length} 
                 transactions={mapTransactions(data.gold)} 
                 layer="gold" 
@@ -127,7 +127,7 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
           {/* Single Unified Spanning Rejected Stack */}
           <div className="h-2/5 shrink-0 flex flex-col w-full min-h-0">
             <KanbanColumn 
-              title="Rejected Stack" 
+              title="REJECTED STACK" 
               count={data.rejected.length} 
               transactions={mapTransactions(data.rejected)} 
               layer="rejected" 
@@ -139,7 +139,7 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
 
         <div className="h-full flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-0">
           <KanbanColumn 
-            title="Inference" 
+            title="INFERENCE LAYER" 
             count={data.inference.length} 
             transactions={mapTransactions(data.inference)} 
             layer="inference" 
@@ -149,7 +149,7 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
 
         <div className="h-full flex-1 flex flex-col min-w-[120px] max-w-[320px] min-h-0">
           <KanbanColumn 
-            title="Final State" 
+            title="FINAL STATE" 
             count={data.final.length} 
             transactions={mapTransactions(
               [...data.final].sort((a, b) => {

@@ -132,17 +132,22 @@ export default function DashboardClient() {
         <Header metrics={data.metrics} />
         <main className="flex-1 p-4 md:p-6 flex flex-col gap-4 md:gap-6 xl:gap-8 w-full max-w-[1920px] mx-auto">
 
-          {/* Pipeline Introduction */}
-          <section className="bg-[#161721] p-4 md:p-6 lg:p-8 rounded-xl border border-gray-800 shadow-xl text-left">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[var(--primary)] mb-2 lg:mb-4 tracking-tighter uppercase">
-              Pipeline <span className="text-white">Architecture</span>
-            </h1>
+          {/* Hero Section */}
+          <section className="relative overflow-hidden bg-[#161721] p-6 md:p-8 rounded-2xl border border-gray-800 shadow-xl text-left">
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-br from-[var(--primary)]/10 to-transparent blur-[100px] pointer-events-none rounded-full"></div>
+            
+            <div className="mb-4">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-[var(--primary)] tracking-tight uppercase">
+                Pipeline <span className="text-white">Architecture</span>
+              </h1>
+            </div>
+            
             <p className="text-gray-400 text-xs lg:text-sm leading-relaxed text-justify w-full">
             This pipeline orchestrates a 5-stage data refinement process for credit card fraud detection, starting with 
             <span className="text-blue-500 font-bold"> Bronze</span> to ingest raw transaction events, followed by 
             <span className="text-blue-500 font-bold"> Silver</span> to enrich them with external APIs, and 
             <span className="text-blue-500 font-bold"> Gold</span> to apply core business rules. The 
-            <span className="text-blue-500 font-bold"> Inference Layer</span> then executes the pre-trained machine learning model, while the final 
+            <span className="text-blue-500 font-bold"> Inference Layer</span> then executes the machine learning model, while the final 
             <span className="text-blue-500 font-bold"> Decision Layer</span> determines the ultimate status of the transaction based on both the model's prediction and the enriched data. The entire system is architected to evaluate pipeline resilience against data drift, API instability, and format errors in mission-critical environments.
           </p>
           </section>
