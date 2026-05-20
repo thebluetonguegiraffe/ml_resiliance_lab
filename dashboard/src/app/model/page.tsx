@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import TimeDistributionChart from "@/components/TimeDistributionChart";
 import { getTransactionTimeDistributions, getDashboardMetrics } from "@/app/actions";
-import { Database, Cpu, AlertTriangle } from "lucide-react";
+import { Database, Cpu, AlertTriangle, Layers, Zap } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +29,7 @@ export default async function ModelPage() {
             </p>
           </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {/* Training Card */}
             <div className="bg-[#1c1e2a] p-4 md:p-6 lg:p-8 rounded-xl lg:rounded-2xl border border-gray-800 shadow-xl flex flex-col gap-4 lg:gap-6 hover:border-gray-700 transition-colors">
               <div className="flex items-center gap-3 text-white">
@@ -54,30 +54,105 @@ export default async function ModelPage() {
                   <span className="text-red-400 font-bold">0.172% Fraud Rate</span>
                 </li>
               </ul>
+              <div className="bg-gray-900/30 p-3 rounded-xl border border-gray-800/40 text-[10px] text-gray-500 flex items-center justify-between mt-auto">
+                <span>Imbalance Correction</span>
+                <span className="text-[#10b981] font-bold">Active (SMOTE)</span>
+              </div>
             </div>
 
-            {/* Algorithm Card */}
+            {/* Random Forest Card */}
             <div className="bg-[#1c1e2a] p-4 md:p-6 lg:p-8 rounded-xl lg:rounded-2xl border border-gray-800 shadow-xl flex flex-col gap-4 lg:gap-6 hover:border-gray-700 transition-colors">
               <div className="flex items-center gap-3 text-white">
-                <Cpu className="text-[var(--success)] w-5 h-5 lg:w-6 lg:h-6" />
-                <h2 className="text-lg lg:text-xl font-bold">Algorithm & Logic</h2>
+                <Layers className="text-[#10b981] w-5 h-5 lg:w-6 lg:h-6" />
+                <h2 className="text-lg lg:text-xl font-bold">Random Forest Model</h2>
               </div>
               <p className="text-gray-400 text-xs lg:text-sm leading-relaxed text-justify">
-                We employ an Ensemble learning strategy using Random Forest with SMOTE oversampling. 
-                The model analyzes transaction amount, temporal velocity, and 28 PCA-transformed features to output a fraud probability score.
+                Uses an Ensemble strategy with Random Forest to analyze transaction amounts, temporal patterns, and PCA features. Optimized using AUPRC to handle the extreme 0.172% fraud imbalance, allowing it to outperform sequential boosting methods with fewer false negatives.
               </p>
-              <div className="bg-gray-900/50 p-4 lg:p-5 rounded-xl lg:rounded-2xl border border-gray-800 flex justify-between items-center mt-auto">
-                <div>
-                  <div className="text-[9px] lg:text-[10px] text-gray-500 mb-0.5 uppercase font-black tracking-widest">Target Latency</div>
-                  <div className="text-xl lg:text-2xl font-black text-[var(--success)] tracking-tight">~12.4ms</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[9px] lg:text-[10px] text-gray-500 mb-0.5 uppercase font-black tracking-widest">Precision-Recall</div>
-                  <div className="text-xl lg:text-2xl font-black text-white tracking-tight">0.942</div>
-                </div>
+              <div className="bg-gray-900/30 p-3 rounded-xl border border-gray-800/40 text-xs text-gray-400 flex items-center justify-between mt-auto">
+                <span>Baseline AUROC</span>
+                <span className="text-[#10b981] text-base font-black">0.9917</span>
+              </div>
+            </div>
+
+            {/* XGBoost Card */}
+            <div className="bg-[#1c1e2a] p-4 md:p-6 lg:p-8 rounded-xl lg:rounded-2xl border border-gray-800 shadow-xl flex flex-col gap-4 lg:gap-6 hover:border-gray-700 transition-colors">
+              <div className="flex items-center gap-3 text-white">
+                <Zap className="text-yellow-400 w-5 h-5 lg:w-6 lg:h-6 animate-pulse" />
+                <h2 className="text-lg lg:text-xl font-bold text-white">XGBoost Alternative</h2>
+              </div>
+              <p className="text-gray-400 text-xs lg:text-sm leading-relaxed text-justify">
+                Evaluates a sequential boosting XGBoost alternative. While it shares the same inputs and AUPRC focus, experiments show that applying traditional imbalance corrections (<code className="text-red-400 font-mono text-[11px] bg-red-950/20 px-1 py-0.5 rounded">scale_pos_weight</code>) degrades performance and increases false negatives.
+              </p>
+              <div className="bg-gray-900/30 p-3 rounded-xl border border-gray-800/40 text-xs text-gray-400 flex items-center justify-between mt-auto">
+                <span>Baseline AUROC</span>
+                <span className="text-yellow-400 text-base font-black">0.9810</span>
               </div>
             </div>
           </div>
+
+          {/* Performance Comparison Section */}
+          <section className="bg-[#161721] p-4 md:p-6 lg:p-8 rounded-xl border border-gray-800 shadow-xl flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div>
+                <h3 className="text-lg font-bold text-white uppercase tracking-tighter">Model Performance Comparison</h3>
+                <p className="text-gray-500 text-[10px] uppercase tracking-wider font-bold">Experiment Runs & Validation Metrics</p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20">
+                Random Forest Baseline is Optimal
+              </span>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs lg:text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-800 text-gray-500 uppercase text-[10px] tracking-wider">
+                    <th className="py-3 px-4 font-bold">Run ID</th>
+                    <th className="py-3 px-4 font-bold">Model Architecture</th>
+                    <th className="py-3 px-4 font-bold">ROC-AUC (AUROC)</th>
+                    <th className="py-3 px-4 font-bold">Recall (Fraud)</th>
+                    <th className="py-3 px-4 font-bold">PR-AUC (AUPRC)</th>
+                    <th className="py-3 px-4 font-bold text-right">False Negatives</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800/40 text-gray-300 font-mono">
+                  <tr className="hover:bg-gray-850/50 transition-colors">
+                    <td className="py-3.5 px-4 font-medium text-gray-400">baseline</td>
+                    <td className="py-3.5 px-4 font-semibold text-white font-sans flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#10b981]"></span>
+                      Random Forest
+                    </td>
+                    <td className="py-3.5 px-4 font-bold text-[#10b981]">0.9917</td>
+                    <td className="py-3.5 px-4 font-bold text-[#10b981]">0.889</td>
+                    <td className="py-3.5 px-4">0.931</td>
+                    <td className="py-3.5 px-4 font-bold text-[#10b981] text-right">5</td>
+                  </tr>
+                  <tr className="hover:bg-gray-850/50 transition-colors">
+                    <td className="py-3.5 px-4 font-medium text-gray-400">baseline</td>
+                    <td className="py-3.5 px-4 font-semibold text-white font-sans flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[var(--primary)] animate-pulse"></span>
+                      XGBoost
+                    </td>
+                    <td className="py-3.5 px-4">0.9810</td>
+                    <td className="py-3.5 px-4">0.867</td>
+                    <td className="py-3.5 px-4 font-bold text-[var(--primary)]">0.931</td>
+                    <td className="py-3.5 px-4 text-right">6</td>
+                  </tr>
+                  <tr className="hover:bg-gray-850/50 transition-colors">
+                    <td className="py-3.5 px-4 font-medium text-gray-500">scale_pos_weight</td>
+                    <td className="py-3.5 px-4 font-semibold text-gray-400 font-sans flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#f43f5e]"></span>
+                      XGBoost
+                    </td>
+                    <td className="py-3.5 px-4 text-gray-500">0.9753</td>
+                    <td className="py-3.5 px-4 text-gray-500">0.844</td>
+                    <td className="py-3.5 px-4 text-gray-500">0.827</td>
+                    <td className="py-3.5 px-4 text-right text-[#f43f5e]">7</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
 
           {/* Chart Section - Split Layout */}
           <div className="grid grid-cols-4 gap-6 lg:gap-8">

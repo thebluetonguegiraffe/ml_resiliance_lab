@@ -138,13 +138,13 @@ export default function DashboardClient() {
               Pipeline <span className="text-white">Architecture</span>
             </h1>
             <p className="text-gray-400 text-xs lg:text-sm leading-relaxed text-justify w-full">
-              This pipeline orchestrates a 4-stage data refinement process for fraud detection.
-              <span className="text-[var(--primary)] font-bold"> Bronze</span> ingests raw events,
-              <span className="text-[var(--primary)] font-bold"> Silver</span> enriches them with external APIs and ML features,
-              <span className="text-[var(--primary)] font-bold"> Gold</span> applies business rules,
-              and the <span className="text-[var(--primary)] font-bold"> Inference Layer</span> executes the pre-trained model for final decision-making.
-              The system is architected to evaluate resilience against adversarial data drift, API instability, and schema contract violations in mission-critical environments.
-            </p>
+            This pipeline orchestrates a 5-stage data refinement process for credit card fraud detection, starting with 
+            <span className="text-blue-500 font-bold"> Bronze</span> to ingest raw transaction events, followed by 
+            <span className="text-blue-500 font-bold"> Silver</span> to enrich them with external APIs, and 
+            <span className="text-blue-500 font-bold"> Gold</span> to apply core business rules. The 
+            <span className="text-blue-500 font-bold"> Inference Layer</span> then executes the pre-trained machine learning model, while the final 
+            <span className="text-blue-500 font-bold"> Decision Layer</span> determines the ultimate status of the transaction based on both the model's prediction and the enriched data. The entire system is architected to evaluate pipeline resilience against data drift, API instability, and format errors in mission-critical environments.
+          </p>
           </section>
 
           {/* Top Row: Control Panel (Protagonist) */}

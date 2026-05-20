@@ -15,13 +15,13 @@ const steps: Step[] = [
   {
     targetId: 'welcome',
     title: 'Welcome to the Lab',
-    description: 'This guided tour will show you how to monitor and stress-test your ML Resilience Pipeline. Get ready to explore the system architecture and learn how to handle real-world data failures.',
+    description: 'This guided tour showcases how to monitor and stress-test the credit card fraud detection pipeline. Get ready to explore the system architecture and learn how to handle real-world data failures.',
     position: 'center'
   },
   {
     targetId: 'tour-stats',
     title: 'System Health Stats',
-    description: 'Monitor key metrics in real-time: blocked transactions (Rejects), API enrichment health status, statistical drift levels, and pending Human Reviews in the gray area.',
+    description: 'Monitor key metrics in real-time: blocked transactions, API enrichment health status, statistical drift levels, and pending Human Reviews transactions.',
     position: 'bottom'
   },
   {
@@ -33,7 +33,7 @@ const steps: Step[] = [
   {
     targetId: 'tour-fault-controls',
     title: 'Fault Injection Control',
-    description: 'Your stress-testing control center. Inject live operational data anomalies: ingest corrupted data with "Invalid Tx", trigger off-hour spikes with "Nightly Burst", simulate API connection loss with "Kill API", or test rate-limiting thresholds with "Velocity Burst".',
+    description: 'This control center manages system stress testing by injecting live operational data anomalies. It allows the simulation of corrupted data via "Invalid Tx", off-hour transaction spikes via "Nightly Burst", API connection losses via "Kill API", rate-limiting threshold issues via "Velocity Burst", and targeted fraud pattern testing via "Fraud Sample.',
     position: 'bottom'
   },
   {
@@ -179,7 +179,7 @@ function GuidedTourContent() {
 
         <div className="flex justify-between items-start mb-4 lg:mb-6">
           <div className="flex flex-col">
-            <span className="text-[8px] lg:text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-1">Module {currentStep + 1} of {steps.length}</span>
+            <span className="text-[8px] lg:text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-1">Step {currentStep + 1} of {steps.length}</span>
             <div className="flex items-center gap-2 lg:gap-3">
               {isWelcome && <Rocket className="text-[var(--primary)] w-5 h-5 lg:w-6 lg:h-6" />}
               <h3 className="text-lg lg:text-2xl font-black text-white uppercase tracking-tighter leading-none">{step.title}</h3>
