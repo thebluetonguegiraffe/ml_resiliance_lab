@@ -1,8 +1,9 @@
 "use client";
 
-import { AlertTriangle, Power, Zap, RotateCcw, Play, Server, Bug, Moon, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Power, Zap, RotateCcw, Play, Server, Bug, Moon, ShieldAlert, ArrowRight } from "lucide-react";
 import { injectInvalidTx, injectNightlyBurst, toggleApiOutage, toggleApiRecovery, injectVelocityBurst, resetPipeline, startPipeline, injectIncorrectSample } from "@/app/actions";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 export default function ControlPanel({ apiStatus, isRunning: serverIsRunning }: { apiStatus: string; isRunning?: boolean }) {
   const isApiDown = apiStatus === "DOWN";
@@ -199,9 +200,18 @@ export default function ControlPanel({ apiStatus, isRunning: serverIsRunning }: 
       {/* Right Column: Fault Injection Control */}
       <div id="tour-fault-controls" className="flex-1 flex flex-col gap-3 justify-between pl-2 lg:pl-0">
         {/* Row 1: Right Title */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <Bug className="w-5 h-5 lg:w-6 lg:h-6 text-[var(--warning)]" />
-          <span className="text-sm lg:text-base font-bold text-white uppercase tracking-wider">Fault Injection Control</span>
+        <div className="flex items-center justify-between gap-2.5 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <Bug className="w-5 h-5 lg:w-6 lg:h-6 text-[var(--warning)]" />
+            <span className="text-sm lg:text-base font-bold text-white uppercase tracking-wider">Fault Injection Control</span>
+          </div>
+          <Link
+            href="/resilience"
+            className="flex items-center gap-1.5 text-[10px] text-gray-500 hover:text-[var(--primary)] transition-colors duration-200 group shrink-0"
+          >
+            <span className="font-semibold tracking-wide">Learn more about injections and resilience strategies</span>
+            <span className="flex items-center justify-center w-4 h-4 rounded-full bg-gray-800 border border-gray-700 text-gray-400 group-hover:text-[var(--primary)] group-hover:border-[var(--primary)]/50 transition-all duration-200 text-[10px] font-black shrink-0">?</span>
+          </Link>
         </div>
 
         {/* Row 2: Injections (All in one line) */}
@@ -321,6 +331,7 @@ export default function ControlPanel({ apiStatus, isRunning: serverIsRunning }: 
             </div>
           </div>
         </div>
+
       </div>
 
     </div>

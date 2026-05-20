@@ -44,7 +44,7 @@ export default function LandingPage() {
         </div>
 
         <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter uppercase mb-4 max-w-4xl leading-[0.9]">
-          Real-time <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary)] to-purple-500">Fraud Detection </span> Pipeline & Stress Testing
+          Real-time <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary)] to-purple-500">Credit Card Fraud Detection </span> Pipeline & Stress Testing
         </h2>
 
         <p className="text-gray-400 text-xs md:text-sm lg:text-base max-w-xl mb-6 leading-relaxed">
@@ -75,14 +75,8 @@ export default function LandingPage() {
         </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 w-full z-20 border-t border-gray-800/50 py-4 px-4 lg:px-8 flex justify-between items-center text-gray-500 text-xs font-bold tracking-widest uppercase bg-[#0f111a]">
-        <div>© 2026 ML Resilience Laboratory</div>
-        <div className="flex gap-4 lg:gap-8">
-          <a href="#" className="hover:text-white transition-colors">Documentation</a>
-          <a href="#" className="hover:text-white transition-colors">API Specs</a>
-          <a href="#" className="hover:text-white transition-colors">Source Code</a>
-        </div>
-      </footer>
+
+
 
       <style jsx global>{`
         .blur-transition-out {
