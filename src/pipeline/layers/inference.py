@@ -6,7 +6,7 @@ from pymongo import MongoClient
 
 from config import INFERENCE_RESULTS, MONGO_DB_NAME, TRANSACTIONS_GOLD
 
-MLFLOW_API_URL = "http://127.0.0.1:5001/invocations"
+MLFLOW_API_URL = os.getenv("MLFLOW_API_URL")
 
 logger = logging.getLogger("inference_layer")
 
