@@ -125,7 +125,7 @@ export default function KanbanBoard({ data }: KanbanBoardProps) {
           </div>
           
           {/* Single Unified Spanning Rejected Stack */}
-          <div className="h-2/5 shrink-0 flex flex-col w-full min-h-[50px]">
+          <div className="h-fit md:h-2/5 flex flex-col w-full min-h-[120px] overflow-hidden">
             <KanbanColumn 
               title="REJECTED STACK" 
               count={data.rejected.length} 
