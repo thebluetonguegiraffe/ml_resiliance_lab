@@ -8,7 +8,7 @@ Welcome to the **ML Resilience Lab**! This project is an advanced experimental p
 
 In real-world production systems, a machine learning model is only as robust as the data pipeline that feeds it. Schema anomalies, API timeouts from enrichment services, and shifting user behaviors (data drift) often cause silent, catastrophic failures or severe degradation in model accuracy.
 
-**ML Resilience Lab** addresses this vulnerability by implementing a **multi-layered defense system** for real-time credit card fraud detection (based on the Kaggle *Credit Card Fraud Detection* dataset). The project pairs a highly optimized **Python-based** streaming backend with a state-of-the-art **Next.js** and **TypeScript** dashboard, allowing developers and data scientists to interactively inject faults and inspect system reactions in real time.
+**ML Resilience Lab** addresses this vulnerability by implementing a **multi-layered defense system** for real-time credit card fraud detection (based on the Kaggle *Credit Card Fraud Detection* dataset). The project pairs a highly optimized **Python-based** streaming backend with an interactive control dashboard, allowing developers and data scientists to inject faults and inspect system reactions in real time.
 
 ---
 
@@ -123,13 +123,13 @@ To achieve concurrent real-time processing under load, the pipeline leverages Py
   ```
 
   Once a thread completes, the orchestrator releases the slot and ingests the next record.
-* **UI Pacing Coordination**: For human-in-the-loop demonstration visibility, each individual layer transition includes a small delay (`visual_delay = 1.5s`). This slows down concurrent processing just enough for live websockets to broadcast layer updates to the dashboard, allowing developers to visually audit transactions traversing from Bronze to Silver, Gold, and final decision states.
+* **UI Pacing Coordination**: For human-in-the-loop demonstration visibility, each individual layer transition includes a small delay (`visual_delay = 1.5s`). This slows down concurrent processing just enough for a live SSE stream to broadcast layer updates to the dashboard, allowing developers to visually audit transactions traversing from Bronze to Silver, Gold, and final decision states.
 
 ---
 
 ## ⚡ Chaos Engineering: Fault Injection Scenarios
 
-Audit pipeline behavior interactively from the Next.js control panel using 5 specialized failure scenarios:
+Audit pipeline behavior interactively from the web control panel using 5 specialized failure scenarios:
 
 | Injected Anomaly         | Targeted Layer                 | Triggered Defense Pattern                                               | Observed UI Result                                                                                                    |
 | :----------------------- | :----------------------------- | :---------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------- |
@@ -166,8 +166,8 @@ The python backend includes a complete machine learning training and evaluation 
 * **Backend (Python):** Python 3.11+, [uv](https://github.com/astral-sh/uv) (package resolver), Pydantic v2 (data contracts), Pandas, Scikit-learn, XGBoost, PyMongo.
 * **MLOps & Inference:** MLflow (Experiment tracking, model registry, REST scoring server).
 * **Databases:** MongoDB Atlas (multi-layer Medallion collections and injection event queues), SQLite (local MLflow store).
-* **Frontend (Next.js):** TypeScript, Next.js 14/15 (App Router & Server Actions), Tailwind CSS, Vanilla CSS, Recharts, Lucide Icons.
-* **Containers:** Docker and Docker Compose (orchestrating Next.js on `3005` and MLflow Model server on `5001`).
+* **Frontend:** Web dashboard (Next.js, Server Actions, SSE streaming) for live monitoring and fault injection.
+* **Containers:** Docker and Docker Compose (orchestrating the dashboard on `3001` and MLflow Model server on `5001`).
 ---
 
 ## 🏆 Conclusions & Core Robustness Guarantees
